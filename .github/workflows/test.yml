@@ -4,16 +4,11 @@ on: [push]
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        haxe: [4.2.3]
-      fail-fast: true
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: ./
+      - uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: ${{ matrix.haxe }}
-      - run: haxe -version
-      - run: haxe scripts/build.hxml
+          haxe-version: 4.2.3
+      - run: |
+          haxe -version
+          haxe scripts/build.hxml
