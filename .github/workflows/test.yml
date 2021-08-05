@@ -7,10 +7,10 @@ jobs:
     strategy:
       matrix:
         haxe-version: [4.2.3]
-
+        
     runs-on: ubuntu-latest
     steps:
       - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: ${{ matrix.haxe-version }}
-      - run: ./scripts/build.hxml
+      - run: haxe scripts/build.hxml

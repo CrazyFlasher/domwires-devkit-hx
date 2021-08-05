@@ -1,2 +1,2 @@
--cmd haxe ./scripts/install.hxml
--cmd haxe ./scripts/test.hxml
+-cmd haxe scripts/install.hxml
+-cmd haxe scripts/test.hxml
