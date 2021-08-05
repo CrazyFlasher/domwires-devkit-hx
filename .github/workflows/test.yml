@@ -1,4 +1,4 @@
-name: test
+name: Tests
 
 on: [push]
 
@@ -9,4 +9,6 @@ jobs:
       - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: 4.2.3
-      - run: haxe scripts/build.hxml
+      - name: Run Tests
+      working-directory: $GITHUB_WORKSPACE
+      run: haxe scripts/build.hxml
