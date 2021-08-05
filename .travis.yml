@@ -10,7 +10,7 @@ haxe:
 
 neko: "2.3.0"
 
-services: mongodb
+# services: mongodb
 
 hxml:
-#  - haxe package.hxml
+ - haxe scripts/build.hxml
