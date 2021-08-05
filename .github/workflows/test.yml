@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - uses: ianharrigan/GitHubActionsTest/.github/actions/haxe@master
+      - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: ${{ matrix.haxe-version }}
       - run: haxe ${{ matrix.hxml }}
