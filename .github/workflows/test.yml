@@ -10,5 +10,5 @@ jobs:
         with:
           haxe-version: 4.2.3
       - name: Run Tests
-        working-directory: $GITHUB_WORKSPACE
+        working-directory: ./
         run: haxe scripts/build.hxml
