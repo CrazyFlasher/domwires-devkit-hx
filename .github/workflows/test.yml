@@ -10,5 +10,6 @@ jobs:
         with:
           haxe-version: 4.2.3
       - run: |
+          dir
           haxe -version
           haxe scripts/build.hxml
