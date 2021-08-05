@@ -3,8 +3,6 @@ os:
   - linux
 #  - osx
 
-dist: xenial
-
 haxe:
   - "4.2.3"
 
@@ -12,5 +10,5 @@ neko: "2.3.0"
 
 # services: mongodb
 
-hxml:
+script:
  - haxe scripts/build.hxml
