@@ -1,14 +1,16 @@
-name: Tests
+name: Test
 
 on: [push]
 
 jobs:
-  build:
+  test:
+    strategy:
+      matrix:
+        haxe-version: [4.2.3]
+
     runs-on: ubuntu-latest
     steps:
       - uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: 4.2.3
-      - name: Run Tests
-        working-directory: ./
-        run: haxe scripts/build.hxml
+          haxe-version: ${{ matrix.haxe-version }}
+      - run: haxe ./scripts/build.hxml
