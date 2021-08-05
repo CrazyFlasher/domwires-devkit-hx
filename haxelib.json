@@ -1,0 +1,27 @@
+{
+  "name": "domwires-ext-hx",
+  "url": "https://github.com/CrazyFlasher/domwires-ext-hx",
+  "license": "MIT",
+  "tags": [
+    "mvc",
+    "framework",
+    "js",
+    "html5",
+    "nodejs",
+    "server",
+    "web",
+    "socket",
+    "mongodb",
+    "express"
+  ],
+  "description": "Extensions for DomWires Framework",
+  "version": "1.0.0-alpha.1",
+  "releasenote": "See commit logs on GitHub",
+  "contributors": [
+    "CrazyFlasher"
+  ],
+  "classPath": "src",
+  "dependencies": {
+    "DomWires": "1.0.0-alpha.15"
+  }
+}

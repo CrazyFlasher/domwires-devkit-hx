@@ -1,0 +1,30 @@
+{
+    "haxe.configurations": [ // one or more configurations for the haxe completion server
+        [
+            "-cp", "src",
+            "-p", "test",
+            "-js", "main.js",
+            "-lib", "DomWires",
+            "-lib", "munit",
+            "-lib", "hxnodejs"
+        ], // a configuration is array of arguments passed to the completion server
+        [
+            "build.hxml"
+        ], // hxml file is a normal Haxe argument too
+    ],
+    "haxe.exclude": [
+        "zpp_nape"
+    ],
+    "haxe.displayServer": {
+        "arguments": ["-v"],
+        "print": {
+            "reusing": true
+        }
+    },
+    "haxeTestExplorer.testCommand": [
+        "${haxe}",
+        "test.hxml",
+        "-lib", "test-adapter"
+    ],
+    "haxeTestExplorer.launchConfiguration": "Debug"
+}

@@ -1,0 +1,9 @@
+.haxelib
+.unittest
+node_modules
+.idea
+*.iml
+out
+build
+report
+docs

@@ -1,0 +1,19 @@
+{
+  "name": "domwires-ext-hx",
+  "version": "1.0.0-alpha.1",
+  "description": "Extensions for DomWires Framework",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "dts2hx --all --allowIntersectionRasterization"
+  },
+  "keywords": [],
+  "author": "CrazyFlasher",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "4.17.6",
+    "express": "4.17.1"
+  },
+  "devDependencies": {
+    "dts2hx": "0.14.6"
+  }
+}

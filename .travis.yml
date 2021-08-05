@@ -1,0 +1,16 @@
+language: haxe
+os:
+  - linux
+#  - osx
+
+dist: xenial
+
+haxe:
+  - "4.3.2"
+
+neko: "2.3.0"
+
+services: mongodb
+
+hxml:
+#  - haxe package.hxml
