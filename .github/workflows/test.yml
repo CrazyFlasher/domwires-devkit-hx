@@ -13,4 +13,4 @@ jobs:
       - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: ${{ matrix.haxe-version }}
-      - run: haxe ./scripts/build.hxml
+      - run: haxe $GITHUB_WORKSPACE/scripts/build.hxml
