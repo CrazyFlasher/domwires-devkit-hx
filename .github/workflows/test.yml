@@ -3,14 +3,15 @@ name: Test
 on: [push]
 
 jobs:
-  test:
+  build:
     strategy:
       matrix:
         haxe-version: [4.2.3]
-        
+        hxml: [scripts/build.hxml]
+
     runs-on: ubuntu-latest
     steps:
       - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: ${{ matrix.haxe-version }}
-      - run: haxe scripts/build.hxml
+      - run: haxe ${{ matrix.hxml }}
