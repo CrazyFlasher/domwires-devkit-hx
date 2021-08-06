@@ -2,7 +2,7 @@ import massive.munit.Assert;
 import massive.munit.TestRunner;
 import massive.munit.client.RichPrintClient;
 
-class TestMain
+class TestMunit
 {
     static function main()
     {
@@ -19,6 +19,6 @@ class TestSuite extends massive.munit.TestSuite
 		super();
 
 		add(com.domwires.ext.service.net.impl.WebServerServiceTest);
-		add(TemplateTest);
+		add(TemplateMunitTest);
 	}
 }
