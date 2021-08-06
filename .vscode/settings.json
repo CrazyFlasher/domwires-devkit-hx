@@ -17,10 +17,7 @@
         "zpp_nape"
     ],
     "haxe.displayServer": {
-        "arguments": ["-v"],
-        "print": {
-            "reusing": true
-        }
+        "arguments": ["-v"]
     },
     "haxeTestExplorer.testCommand": [
         "${haxe}",
