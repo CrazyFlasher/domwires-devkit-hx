@@ -1,8 +1,6 @@
-package ;
-
 import massive.munit.Assert;
 
-class TemplateTest
+class TemplateMunitTest
 {
     @BeforeClass
     public function beforeClass():Void

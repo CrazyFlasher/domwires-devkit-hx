@@ -11,3 +11,14 @@ class TestMain
         runner.run([TestSuite]);
     }
 }
+
+class TestSuite extends massive.munit.TestSuite
+{
+	public function new()
+	{
+		super();
+
+		add(com.domwires.ext.service.net.impl.WebServerServiceTest);
+		add(TemplateTest);
+	}
+}

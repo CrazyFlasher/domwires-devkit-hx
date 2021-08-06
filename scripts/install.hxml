@@ -4,6 +4,7 @@
 -cmd haxelib install hxnodejs 12.1.0
 -cmd haxelib install hxp 1.1.4
 -cmd haxelib install munit 2.3.5
+-cmd haxelib install utest 1.13.2
 -cmd haxelib install test-adapter 1.2.10
 # -cmd haxelib git utest https://github.com/haxe-utest/utest.git 6fcfec9964d4e876308f3d335a86034c39ff330d
 # -cmd haxelib git dts2hx https://github.com/haxiomic/dts2hx.git 8e9e8db122b9c906ad815d6c8f196be87be7cff7

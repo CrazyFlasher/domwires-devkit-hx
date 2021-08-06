@@ -1,4 +1,4 @@
--main TestMain
+-main TestMunit
 -lib munit
 -lib hexinject
 -lib dox

@@ -1,2 +1,3 @@
 -cmd haxe scripts/install.hxml
--cmd haxe scripts/test.hxml
+-cmd haxe scripts/test-munit.hxml
+-cmd haxe scripts/test-utest.hxml
