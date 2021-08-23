@@ -5,7 +5,6 @@
             "-p", "test",
             "-js", "main.js",
             "-lib", "DomWires",
-            "-lib", "munit",
             "-lib", "utest",
             "-lib", "hxnodejs"
         ], // a configuration is array of arguments passed to the completion server

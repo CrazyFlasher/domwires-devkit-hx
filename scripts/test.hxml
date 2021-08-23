@@ -1,5 +1,5 @@
--main TestMunit
--lib munit
+-main Test
+-lib utest
 -lib hexinject
 -lib dox
 -lib hxnodejs

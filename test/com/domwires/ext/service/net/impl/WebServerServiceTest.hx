@@ -1,30 +1,28 @@
 package com.domwires.ext.service.net.impl;
 
+import utest.Async;
+import utest.Test;
+import utest.Assert;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.IWebServerService;
 import com.domwires.ext.service.net.WebServerServiceMessageType;
 import com.domwires.ext.service.net.impl.WebServerService;
 import js.node.Http;
-import massive.munit.Assert;
-import massive.munit.async.AsyncFactory;
 
-class WebServerServiceTest
+class WebServerServiceTest extends Test
 {
     private var factory:IAppFactory;
     private var service:IWebServerService;
 
-    @BeforeClass
-    public function beforeClass():Void
+    public function setupClass():Void
     {
     }
 
-    @AfterClass
-    public function afterClass():Void
+    public function teardownClass():Void
     {
     }
 
-    @Before
     public function setup():Void
     {
         factory = new AppFactory();
@@ -32,50 +30,31 @@ class WebServerServiceTest
         factory.mapClassNameToValue("Int", 3000, "IWebServerService_port");
     }
 
-    @After
-    public function tearDown():Void
+    public function teardown():Void
     {
         factory.clear();
         service.dispose();
     }
 
-    /*@Test
-    public function testDisabled(af:AsyncFactory):Void
-    {
-        var handler:Dynamic = af.createHandler(this, () -> Assert.isFalse(service.enabled), 2000);
-
-        factory.mapClassNameToValue("Bool", false, "IWebServerService_enabled");
-
-        service = factory.getInstance(IWebServerService);
-
-        Assert.isFalse(service.enabled);
-    }
-
-    @Test
-    public function testEnabled(af:AsyncFactory):Void
+    @:timeout(5000)
+    public function testClose(async:Async):Void
     {
         service = factory.getInstance(IWebServerService);
-
-        Assert.isTrue(service.enabled);
-    }*/
-
-    @AsyncTest
-    public function testClose(af:AsyncFactory):Void
-    {
-        var handler:Dynamic = af.createHandler(this, () -> Assert.isFalse(service.isOpened), 5000);
-
-        service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.Closed, handler);
+        service.addMessageListener(WebServerServiceMessageType.Closed, m -> {
+            Assert.isFalse(service.isOpened);
+            async.done();
+        });
         service.close();
     }
 
-    @AsyncTest
-    public function testHandlerRequest(af:AsyncFactory):Void
+    @:timeout(5000)
+    public function testHandlerRequest(async:Async):Void
     {
-        var handler:Dynamic = af.createHandler(this, () -> Assert.isFalse(false), 5000);
-
         service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.GotRequest, handler);
+        service.addMessageListener(WebServerServiceMessageType.GotRequest, m -> {
+            Assert.isFalse(false);
+            async.done();
+        });
 
         Http.request("http://127.0.0.1:3000").end();
     }

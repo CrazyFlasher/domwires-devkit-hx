@@ -1,7 +1,7 @@
 import utest.Test;
 import utest.Assert;
 
-class TemplateUtestTest extends Test
+class TemplateTest extends Test
 {
     public function setupClass():Void {}
 
