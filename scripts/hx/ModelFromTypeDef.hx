@@ -30,6 +30,8 @@ class ModelFromTypeDef extends Script
     private var overwrite:Bool;
     private var verbose:Bool;
 
+    private var enumValueList:Array<String> = [];
+
     public function new()
     {
         super();
@@ -166,11 +168,6 @@ class ModelFromTypeDef extends Script
         var over:String = "";
         var sup:String = "";
 
-        if (isEnum)
-        {
-            outputFileName = model_name + "MessageType";
-        }
-
         if (baseModel != null)
         {
             model_base_name = baseModel;
@@ -206,6 +203,16 @@ class ModelFromTypeDef extends Script
         var content:String = "";
         var assign:String = "";
 
+        if (isEnum)
+        {
+            outputFileName = model_name + "MessageType";
+
+            for (value in enumValueList)
+            {
+                content += value + sep() + "    ";
+            }
+        }
+
         for (i in 0...lineList.length)
         {
             var line:String = StringTools.ltrim(lineList[i]);
@@ -218,7 +225,7 @@ class ModelFromTypeDef extends Script
 
                     line = arr.join("(get, never):").split("final").join("var");
                 } else
-                if (!isClass)
+                if (!isClass && !isEnum)
                 {
                     if (outputFileName == null) outputFileName = "I" + model_name;
 
@@ -235,14 +242,18 @@ class ModelFromTypeDef extends Script
                     if (arr.length > 1)
                     {
                         var char:String = line.charAt(6).toUpperCase();
-                        line = line.substring(6, 0) + "set" + char + line.substring(7, line.length);
+                        var methodNameWithType:String = char + line.substring(7, line.length);
+                        line = line.substring(6, 0) + "set" + methodNameWithType;
 
                         var type:String = line.split(":")[1].split(";").join("");
+
+                        enumValueList.push("OnSet" + methodNameWithType.split(":")[0] + ";");
 
                         line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + model_name);
                         line = line.split("final ").join("function ");
                     }
                 } else
+                if (!isEnum)
                 {
                     if (outputFileName == null) outputFileName = model_name;
 
@@ -257,8 +268,11 @@ class ModelFromTypeDef extends Script
                     assign += "_" + name + " = " + data + "." + name + ";" + sep() + "        ";
                 }
 
-                if (content == "") !isClass ? line += sep() + "    " : "";
-                content += line;
+                if (!isEnum)
+                {
+                    if (content == "") !isClass ? line += sep() + "    " : "";
+                    content += line;
+                }
             }
         }
 
@@ -277,8 +291,11 @@ class ModelFromTypeDef extends Script
         var prevLine:String = null;
         var add:Bool = true;
 
-        for (line in lineList)
+        for (i in 0...lineList.length)
         {
+            var line:String = lineList[i];
+            var nextLine:String = i < lineList.length - 1 ? lineList[i + 1] : null;
+
             if (!isEmpty(line))
             {
                 add = true;
@@ -287,7 +304,7 @@ class ModelFromTypeDef extends Script
             {
                 add = true;
             } else
-            if (isEmpty(prevLine))
+            if (isEmpty(prevLine) || (nextLine.split("}").length == 2))
             {
                 add = false;
             }
@@ -298,6 +315,8 @@ class ModelFromTypeDef extends Script
             }
 
             prevLine = line;
+
+            trace("PIZDAAAA " + nextLine + " " + add);
         }
 
         return formattedText;

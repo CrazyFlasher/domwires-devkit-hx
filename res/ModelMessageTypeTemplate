@@ -1,4 +1,4 @@
 enum ${model_name}MessageType
 {
-
+    ${content}
 }
