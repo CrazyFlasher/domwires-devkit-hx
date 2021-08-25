@@ -1,5 +1,6 @@
 package ;
 
+import utils.StringUtils;
 import utils.FileUtils;
 import hxp.Script;
 import sys.FileSystem;
@@ -7,7 +8,7 @@ import sys.io.File;
 
 /**
 * Generates Domwires compatible models from typedefs.
-* Will search for all typedefs marked with @GenerateModel metatag and generate class, interfaces and enum.
+* Will search for all typedefs marked with @Model metatag and generate class, interfaces and enum.
 * See unit test typedeftest.ModelFromTypeDefTest.
 * Usage: haxelib run hxp ./scripts/hx/ModelFromTypeDef.hx -Din=<path to input folder>
 *
@@ -31,6 +32,9 @@ class ModelFromTypeDef extends Script
     private var verbose:Bool;
 
     private var enumValueList:Array<String>;
+    private var typedefFile:String;
+    private var typeDefFileName:String;
+    private var hasErrors:Bool = false;
 
     public function new()
     {
@@ -81,8 +85,6 @@ class ModelFromTypeDef extends Script
 
     private function convertDir(path:String):Void
     {
-        output = path;
-
         if (FileSystem.exists(path) && FileSystem.isDirectory(path))
         {
             for (fileName in FileSystem.readDirectory(path))
@@ -104,25 +106,37 @@ class ModelFromTypeDef extends Script
 
     private function convertFile(path:String, fileName:String):Void
     {
-        var typedefFile:String = File.getContent(path);
+        typedefFile = File.getContent(path);
+        this.typeDefFileName = fileName;
 
-        trace("Generate model from typedef: " + fileName);
+        typedefFile = StringUtils.removeAllEmptySpace(typedefFile);
 
-        if (verbose)
+        if (typedefFile.split("@Model").length > 1)
         {
-            trace(sep() + typedefFile);
+            output = path.split(fileName)[0];
+
+            trace("Generate model from typedef: " + fileName);
+
+            if (verbose)
+            {
+                trace(sep() + typedefFile);
+            }
+
+            enumValueList = [];
+
+            save(generate(ObjectType.Immutable));
+            save(generate(ObjectType.Mutable));
+            save(generate(ObjectType.Class));
+            save(generate(ObjectType.Enum));
         }
-
-        enumValueList = [];
-
-        save(generate(fileName, typedefFile, iModelImmutableTemplate, false, true));
-        save(generate(fileName, typedefFile, iModelTemplate, false));
-        save(generate(fileName, typedefFile, modelTemplate, true));
-        save(generate(fileName, typedefFile, modelMessageTypeTemplate, false, false, true));
     }
 
     private function save(result:OutData):Void
     {
+        if (hasErrors)
+        {
+            Sys.exit(1);
+        }
 
         var outputFile:String = output + "/" + result.fileName + ".hx";
 
@@ -150,133 +164,212 @@ class ModelFromTypeDef extends Script
         }
     }
 
-    private function generate(fileName:String, typedefFile:String, template:String, isClass:Bool,
-                              ?isImmutable:Bool, ?isEnum:Bool):OutData
+    private function generate(type:EnumValue):OutData
     {
+        var template:String = null;
+
+        if (type == ObjectType.Enum)
+        {
+            template = modelMessageTypeTemplate;
+        } else
+        if (type == ObjectType.Class)
+        {
+            template = modelTemplate;
+        } else
+        if (type == ObjectType.Mutable)
+        {
+            template = iModelTemplate;
+        } else
+        if (type == ObjectType.Immutable)
+        {
+            template = iModelImmutableTemplate;
+        }
+
         var outputFileName:String = null;
 
-        var prefix:String = fileName.split("TypeDef.hx")[0];
-        var lineList:Array<String> = typedefFile.split(sep());
+        var importSprit:Array<String> = typedefFile.split("import ");
+        var semicolonSplit:Array<String> = typedefFile.split(";");
+        var equalSplit:Array<String> = typedefFile.split("=");
+        var packageSplit:Array<String> = semicolonSplit[0].split("package ");
+        var typeDefSplit:Array<String> = semicolonSplit[1].split("typedef ");
+        var arrowSplit:Array<String> = typedefFile.split(">");
 
-        var baseModel:String = getBaseModel(lineList);
-
-        var package_name:String = lineList[0];
-
-        var model_name:String = prefix + "Model";
-        var model_base_name:String = "AbstractModel";
-        var model_base_interface:String = "IModel";
-        var data:String = prefix.charAt(0).toLowerCase() + prefix.substring(1, prefix.length) + "Data";
-        var imports:String = "import com.domwires.core.mvc.model.*;" + sep();
-        var over:String = "";
-        var sup:String = "";
-
-        if (baseModel != null)
+        if (arrowSplit.length > 2)
         {
-            model_base_name = baseModel;
+            trace("Error: only single inheritance in supported: " + typeDefFileName);
+            hasErrors = true;
+        }
+        if (importSprit.length > 1 && importSprit[0].indexOf("import ") == 0)
+        {
+            trace("Error: imports are not supported. Use full package path: " + typeDefFileName);
+            hasErrors = true;
+        }
+        if (packageSplit.length != 2)
+        {
+            trace("Error: package is missing in: " + typeDefFileName);
+            hasErrors = true;
+        }
+        if (typeDefSplit.length != 2)
+        {
+            trace("Error: typdef is missing in: " + typeDefFileName);
+            hasErrors = true;
+        }
 
-            var parseNameArr = model_base_name.split(".");
-            if (parseNameArr.length > 1)
-            {
-                parseNameArr[parseNameArr.length - 1] = "I" + parseNameArr[parseNameArr.length - 1];
+        var packageValue:String = semicolonSplit[0];
+        var packageName:String = packageValue.split(" ")[1];
+        var typeDefName:String = typeDefSplit[1].split("=")[0];
 
-                model_base_interface = parseNameArr.join(".");
-            } else
+        var typeDefNameSplit:Array<String> = typeDefName.split("TypeDef");
+        if (typeDefName.split("TypeDef").length != 2 || typeDefName.substr(typeDefName.length - 7) != "TypeDef")
+        {
+            trace("Error: typdef name should end with 'TypeDef'" + typeDefFileName);
+            hasErrors = true;
+        }
+
+        var baseModelName:String = null;
+        if (arrowSplit.length > 1)
+        {
+            var baseTypeDef:String = arrowSplit[1].substring(0, arrowSplit[1].indexOf(","));
+            var baseTypeDefSplit:Array<String> = baseTypeDef.split("TypeDef");
+            if (baseTypeDefSplit.length != 2 || baseTypeDef.substr(baseTypeDef.length - 7) != "TypeDef")
             {
-                model_base_interface = "I" + model_base_name;
+                trace("Error: base typdef name should end with 'TypeDef'" + typeDefFileName);
+                hasErrors = true;
             }
 
-            over = "override ";
-            sup = "super.init();";
+            baseModelName = baseTypeDefSplit[0] + "Model";
+
+            trace("Base model: " + baseModelName);
+        }
+
+        var modelPrefix:String = typeDefNameSplit[0];
+        var modelName:String = modelPrefix + "Model";
+        var modelBaseName:String = "AbstractModel";
+        var modelBaseInterface:String = "IModel";
+        var data:String = modelPrefix.charAt(0).toLowerCase() + modelPrefix.substring(1, modelPrefix.length) + "Data";
+        var imports:String = "import com.domwires.core.mvc.model.*;" + sep();
+        var _override:String = "";
+        var _super:String = "";
+
+        if (baseModelName != null)
+        {
+            modelBaseName = baseModelName;
+
+            var modelBaseNameSplit:Array<String> = modelBaseName.split(".");
+            if (modelBaseNameSplit.length > 1)
+            {
+                modelBaseNameSplit[modelBaseNameSplit.length - 1] = "I" + modelBaseNameSplit[modelBaseNameSplit.length - 1];
+
+                modelBaseInterface = modelBaseNameSplit.join(".");
+            } else
+            {
+                modelBaseInterface = "I" + modelBaseName;
+            }
+
+            _override = "override ";
+            _super = "super.init();";
             imports = "";
         }
 
-        imports += package_name.split("package ").join("import ").split(";").join("." + model_name + ";");
+        if (type == ObjectType.Mutable)
+        {
+            imports += packageSplit.join("import ") + "." + modelName + ";";
+        }
 
-        var out:String = package_name + sep() + FileUtils.lineSeparator() + template
+        var out:String = packageValue + ";" + sep(2) + template
             .split("${imports}").join(imports)
             .split("${data}").join(data)
-            .split("${over}").join(over)
-            .split("${sup}").join(sup)
-            .split("${model_name}").join(model_name)
-            .split("${model_base_name}").join(model_base_name)
-            .split("${typedef_name}").join(fileName.split(".hx").join(""))
-            .split("${model_base_interface}").join(model_base_interface);
+            .split("${_override}").join(_override)
+            .split("${_super}").join(_super)
+            .split("${model_name}").join(modelName)
+            .split("${model_base_name}").join(modelBaseName)
+            .split("${typedef_name}").join(typeDefName)
+            .split("${model_base_interface}").join(modelBaseInterface);
 
         var content:String = "";
         var assign:String = "";
 
-        if (isEnum)
+        if (type == ObjectType.Enum)
         {
-            outputFileName = model_name + "MessageType";
+            outputFileName = modelName + "MessageType";
 
             for (value in enumValueList)
             {
-                content += value + sep() + "    ";
+                content += value + sep() + tab();
             }
         }
 
-        for (i in 0...lineList.length)
+        var paramList:Array<String> = arrowSplit.length > 1
+            ? equalSplit[1].split(",")[1].split(";")
+            : equalSplit[1].substring(1, equalSplit[1].lastIndexOf("}")).split(";");
+
+        paramList.pop();
+
+        for (param in paramList)
         {
-            var line:String = StringTools.ltrim(lineList[i]);
-            var arr = line.split(":");
-            if (arr.length > 1)
+            if (param.split("final ").length != 2)
             {
-                if (isImmutable)
-                {
-                    if (outputFileName == null) outputFileName = "I" + model_name + "Immutable";
+                trace("Error: use 'final' to keep immutability: " + param);
+                hasErrors = true;
+            }
+        }
 
-                    line = arr.join("(get, never):").split("final").join("var");
-                } else
-                if (!isClass && !isEnum)
-                {
-                    if (outputFileName == null) outputFileName = "I" + model_name;
+        for (i in 0...paramList.length)
+        {
+            var line:String = "";
 
-                    arr = line.split("var ");
+            var param:String = paramList[i];
+            var paramTypeSplit:Array<String> = param.split(":");
+            var paramFinalSplit:Array<String> = param.split("final ");
 
-                    if (arr.length > 1)
-                    {
-                        trace("Please, use final instead of var in typeDef to keep immutability!");
-                        Sys.exit(1);
-                    }
+            if (paramTypeSplit.length != 2)
+            {
+                trace("Error: cannot parse type from param: " + param);
+                hasErrors = true;
+            }
 
-                    arr = line.split("final ");
+            if (type == ObjectType.Immutable)
+            {
+                if (outputFileName == null) outputFileName = "I" + modelName + "Immutable";
 
-                    if (arr.length > 1)
-                    {
-                        var char:String = line.charAt(6).toUpperCase();
-                        var methodNameWithType:String = char + line.substring(7, line.length);
-                        line = line.substring(6, 0) + "set" + methodNameWithType;
+                line = paramTypeSplit.join("(get, never):").split("final ").join("var ") + ";";
+            } else
+            if (type == ObjectType.Mutable)
+            {
+                if (outputFileName == null) outputFileName = "I" + modelName;
 
-                        var type:String = line.split(":")[1].split(";").join("");
-                        var messageType:String = methodNameWithType.split(":")[0];
-                        enumValueList.push("OnSet" + messageType + ";");
+                var char:String = paramFinalSplit[1].charAt(0).toUpperCase();
+                var methodNameWithType:String = char + paramFinalSplit[1].substring(1, paramFinalSplit[1].length);
+                line = param.substring(6, 0) + "set" + methodNameWithType;
 
-                        line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + model_name);
-                        line = line.split("final ").join("function ");
-                    }
-                } else
-                if (!isEnum)
-                {
-                    if (outputFileName == null) outputFileName = model_name;
+                var type:String = line.split(":")[1].split(";").join("");
+                var messageType:String = methodNameWithType.split(":")[0];
+                enumValueList.push("OnSet" + messageType + ";");
 
-                    var name:String = line.substring(line.indexOf("final ") + 6, line.indexOf(":"));
-                    var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
-                    var type:String = arr[1].split(";").join("");
-                    var messageType:String = "OnSet" + u_name;
+                line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + modelName);
+                line = line.split("final ").join("function ") + ";";
+            } else
+            if (type == ObjectType.Class)
+            {
+                if (outputFileName == null) outputFileName = modelName;
 
-                    line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + sep(2);
-                    line += setterTemplate.split("${name}").join(name).split("${u_name}").join(u_name)
-                        .split("${type}").join(type).split("${model_name}").join(model_name)
-                        .split("${message_type}").join(messageType) + sep(2);
+                var name:String = paramFinalSplit[1].substring(0, paramFinalSplit[1].indexOf(":"));
+                var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
+                var type:String = paramFinalSplit[1].split(":")[1].split(";").join("");
+                var messageType:String = "OnSet" + u_name;
 
-                    assign += "_" + name + " = " + data + "." + name + ";" + sep() + "        ";
-                }
+                line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + sep(2);
+                line += setterTemplate.split("${name}").join(name).split("${u_name}").join(u_name)
+                    .split("${type}").join(type).split("${model_name}").join(modelName)
+                    .split("${message_type}").join(messageType) + sep(2);
 
-                if (!isEnum)
-                {
-                    if (content == "") !isClass ? line += sep() + "    " : "";
-                    content += line;
-                }
+                assign += "_" + name + " = " + data + "." + name + ";" + sep() + tab(2);
+            }
+
+            if (type != ObjectType.Enum)
+            {
+                if (content == "") type != ObjectType.Class ? line += sep() + tab() : "";
+                content += line;
             }
         }
 
@@ -284,7 +377,7 @@ class ModelFromTypeDef extends Script
 
         out = removeEmptyLines(out);
 
-       return {fileName: outputFileName, data: out};
+        return {fileName: outputFileName, data: out};
     }
 
     private function removeEmptyLines(text:String):String
@@ -300,7 +393,7 @@ class ModelFromTypeDef extends Script
             var line:String = lineList[i];
             var nextLine:String = i < lineList.length - 1 ? lineList[i + 1] : null;
 
-            if (!isEmpty(line))
+            if (!StringUtils.isEmpty(line))
             {
                 add = true;
             } else
@@ -308,7 +401,7 @@ class ModelFromTypeDef extends Script
             {
                 add = true;
             } else
-            if (isEmpty(prevLine) || (nextLine.split("}").length == 2))
+            if (StringUtils.isEmpty(prevLine) || (nextLine.split("}").length == 2))
             {
                 add = false;
             }
@@ -322,39 +415,6 @@ class ModelFromTypeDef extends Script
         }
 
         return formattedText;
-    }
-
-    private function isEmpty(str:String):Bool
-    {
-        for (i in 0...str.length)
-        {
-            if (str.charAt(i) != " ")
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private function getBaseModel(lineList:Array<String>):String
-    {
-        var result:String = null;
-
-        for (line in lineList)
-        {
-            var arr = line.split("> ");
-            if (arr.length > 1)
-            {
-                result = arr[1].split(",").join("").split("TypeDef").join("Model");
-
-                if (verbose) trace("Base model: " + result);
-
-                break;
-            }
-        }
-
-        return result;
     }
 
     private function isTypeDef(fileName:String):Bool
@@ -373,9 +433,29 @@ class ModelFromTypeDef extends Script
 
         return out;
     }
+
+    private function tab(x:Int = 1):String
+    {
+        var out:String = "";
+
+        for (i in 0...x)
+        {
+            out += "    ";
+        }
+
+        return out;
+    }
 }
 
 typedef OutData = {
     var fileName:String;
     var data:String;
+}
+
+enum ObjectType
+{
+    Immutable;
+    Mutable;
+    Class;
+    Enum;
 }

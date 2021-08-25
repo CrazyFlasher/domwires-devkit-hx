@@ -1,6 +1,6 @@
 package mock.gameObject;
 
-typedef GameObjectTypeDef =
+@Model typedef GameObjectTypeDef =
 {
     final id:String;
     final name:String;

@@ -1,6 +1,6 @@
 package mock.building;
 
-typedef BuildingTypeDef =
+@Model typedef BuildingTypeDef =
 {
     > mock.gameObject.GameObjectTypeDef,
 

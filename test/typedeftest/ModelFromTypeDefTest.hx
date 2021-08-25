@@ -2,6 +2,8 @@ package typedeftest;
 
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
+import mock.CrazyFormat1TypeDef;
+import mock.ICrazyFormat1Model;
 import mock.building.BuildingTypeDef;
 import mock.building.IBuildingModel;
 import mock.gameObject.GameObjectModelMessageType;
@@ -43,7 +45,7 @@ class ModelFromTypeDefTest extends Test
         Assert.equals("go", model.id);
         Assert.equals("ololo", model.name);
     }
-    
+
     public function testExtendedTypeDef():Void
     {
         var id:String = "some_object_1";
@@ -51,7 +53,13 @@ class ModelFromTypeDefTest extends Test
         var creationTime:Int = 12345;
         var maxUnits:Int = 4;
 
-        var data:BuildingTypeDef = {id: id, name: name, creationTime: creationTime, maxUnits: maxUnits};
+        var data:BuildingTypeDef = {
+            id: id,
+            name: name,
+            creationTime: creationTime,
+            maxUnits: maxUnits
+        };
+
         factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
         factory.mapClassNameToValue("mock.building.BuildingTypeDef", data);
 
@@ -77,10 +85,24 @@ class ModelFromTypeDefTest extends Test
         factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
 
         var model:IGameObjectModel = factory.getInstance(IGameObjectModel);
-        model.addMessageListener(GameObjectModelMessageType.OnSetId, m -> {
+        model.addMessageListener(GameObjectModelMessageType.OnSetId, m ->
+        {
             Assert.isTrue(true);
             async.done();
         });
         model.dispatchMessage(GameObjectModelMessageType.OnSetId);
+    }
+
+    public function testUglyTypeDef():Void
+    {
+        var data:CrazyFormat1TypeDef = {a: 1, b: "two", id: "id", name: "name", maxUnits: 5, creationTime: 1000};
+        factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
+        factory.mapClassNameToValue("mock.building.BuildingTypeDef", data);
+        factory.mapClassNameToValue("mock.CrazyFormat1TypeDef", data);
+
+        var model:ICrazyFormat1Model = factory.getInstance(ICrazyFormat1Model);
+
+        Assert.equals(1, model.a);
+        Assert.equals("two", model.b);
     }
 }
