@@ -248,7 +248,7 @@ class ModelFromTypeDef extends Script
                     assign += "_" + name + " = " + data + "." + name + ";" + sep() + "        ";
                 }
 
-                if (content == "") !isClass ? line += sep() + "   " : "";
+                if (content == "") !isClass ? line += sep() + "    " : "";
                 content += line;
             }
         }
