@@ -1,1 +1,2 @@
-# DomWires Extensions [![Build Status](https://travis-ci.com/CrazyFlasher/domwires-ext-hx.svg?branch=main)](https://travis-ci.com/CrazyFlasher/domwires-ext-hx)
+# DomWires Extensions
+![Build Status](https://github.com/CrazyFlasher/domwires-ext-hx/actions/workflows/test.yml/badge.svg)
