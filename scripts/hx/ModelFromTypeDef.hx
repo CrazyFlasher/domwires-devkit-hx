@@ -84,7 +84,7 @@ class ModelFromTypeDef extends Script
     {
         var typedefFile:String = File.getContent(path);
 
-        trace("Generate from typedef: " + typedefFile);
+        trace("Generate from typedef: \r\n" + typedefFile);
 
         save(generate(fileName, typedefFile, iModelImmutableTemplate, false, true));
         save(generate(fileName, typedefFile, iModelTemplate, false));
@@ -147,8 +147,6 @@ class ModelFromTypeDef extends Script
                 parseNameArr[parseNameArr.length - 1] = "I" + parseNameArr[parseNameArr.length - 1];
 
                 model_base_interface = parseNameArr.join(".");
-
-                trace(model_base_interface);
             } else
             {
                 model_base_interface = "I" + model_base_name;
@@ -286,7 +284,7 @@ class ModelFromTypeDef extends Script
             if (arr.length > 1)
             {
                 result = arr[1].split(",").join("").split("TypeDef").join("Model");
-                trace("Base typeDef: " + result);
+                trace("Base model: " + result);
 
                 break;
             }
