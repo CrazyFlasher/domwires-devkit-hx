@@ -58,6 +58,23 @@ class ModelFromTypeDef extends Script
         modelMessageTypeTemplate = File.getContent("./res/ModelMessageTypeTemplate");
         getterTemplate = File.getContent("./res/GetterTemplate");
         setterTemplate = File.getContent("./res/SetterTemplate");
+
+        if (verbose)
+        {
+            traceTemplate("ModelTemplate", modelTemplate);
+            traceTemplate("IModelTemplate", iModelTemplate);
+            traceTemplate("IModelImmutableTemplate", iModelImmutableTemplate);
+            traceTemplate("ModelMessageTypeTemplate", modelMessageTypeTemplate);
+            traceTemplate("GetterTemplate", getterTemplate);
+            traceTemplate("SetterTemplate", setterTemplate);
+        }
+    }
+
+    private function traceTemplate(name:String, content:String):Void
+    {
+        trace("-------------- " + name + "--------------");
+        trace("\r\n");
+        trace(content);
     }
 
     private function convertDir(path:String):Void
@@ -91,7 +108,7 @@ class ModelFromTypeDef extends Script
 
         if (verbose)
         {
-            trace(typedefFile);
+            trace("\r\n" + typedefFile);
         }
 
         save(generate(fileName, typedefFile, iModelImmutableTemplate, false, true));
@@ -124,7 +141,7 @@ class ModelFromTypeDef extends Script
             if (verbose)
             {
                 trace("File created: " + outputFile);
-                trace(result.data);
+                trace("\r\n" + result.data);
             }
         }
     }
