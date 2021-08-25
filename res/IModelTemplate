@@ -1,0 +1,6 @@
+${imports}
+
+interface I${model_name} extends ${model_base_interface} extends I${model_name}Immutable
+{
+    ${content}
+}

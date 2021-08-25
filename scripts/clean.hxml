@@ -1,0 +1,3 @@
+-cmd haxelib deleterepo
+-cmd rmdir /q /s build
+-cmd rmdir /q /s /unittest

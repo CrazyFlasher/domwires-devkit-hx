@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         haxe-version: [4.2.3]
-        hxml: [scripts/build.hxml]
+        hxml: [scripts/clean.hxml, scripts/build.hxml]
 
     runs-on: ubuntu-latest
     steps:

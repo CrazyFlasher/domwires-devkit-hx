@@ -1,0 +1,6 @@
+    public var ${name}(get, never):${type};
+
+    private function get_${name}():${type}
+    {
+        return _${name};
+    }

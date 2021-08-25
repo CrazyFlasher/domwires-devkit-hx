@@ -20,7 +20,7 @@
     },
     "haxeTestExplorer.testCommand": [
         "${haxe}",
-        "scripts/test-utest.hxml",
+        "scripts/test.hxml",
         "-lib", "test-adapter"
     ],
     "haxeTestExplorer.launchConfiguration": "Debug"

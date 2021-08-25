@@ -1,0 +1,8 @@
+    private var _${name}:${type};
+
+    public function set${u_name}(value:${type}):${model_name}
+    {
+        _${name} = value;
+
+        return this;
+    }

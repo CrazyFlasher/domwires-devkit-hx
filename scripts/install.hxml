@@ -3,7 +3,6 @@
 -cmd haxelib install dox 1.5.0 --silent
 -cmd haxelib install hxnodejs 12.1.0 --silent
 -cmd haxelib install hxp 1.1.4 --silent
--cmd haxelib install munit 2.3.5 --silent
 -cmd haxelib install utest 1.13.2 --silent
 -cmd haxelib install test-adapter 1.2.10 --silent
 # -cmd haxelib git dts2hx https://github.com/haxiomic/dts2hx.git 8e9e8db122b9c906ad815d6c8f196be87be7cff7 --silent

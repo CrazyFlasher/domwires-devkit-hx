@@ -1,0 +1,16 @@
+${imports}
+
+class ${model_name} extends ${model_base_name} implements I${model_name}
+{
+    @Inject
+    private var ${data}:${typedef_name};
+
+${content}
+
+    @PostConstruct
+    ${over}private function init():Void
+    {
+        ${assign}
+        ${sup}
+    }
+}
