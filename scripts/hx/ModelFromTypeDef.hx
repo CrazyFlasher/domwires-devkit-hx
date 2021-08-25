@@ -30,7 +30,7 @@ class ModelFromTypeDef extends Script
     private var overwrite:Bool;
     private var verbose:Bool;
 
-    private var enumValueList:Array<String> = [];
+    private var enumValueList:Array<String>;
 
     public function new()
     {
@@ -112,6 +112,8 @@ class ModelFromTypeDef extends Script
         {
             trace(sep() + typedefFile);
         }
+
+        enumValueList = [];
 
         save(generate(fileName, typedefFile, iModelImmutableTemplate, false, true));
         save(generate(fileName, typedefFile, iModelTemplate, false));
@@ -246,8 +248,8 @@ class ModelFromTypeDef extends Script
                         line = line.substring(6, 0) + "set" + methodNameWithType;
 
                         var type:String = line.split(":")[1].split(";").join("");
-
-                        enumValueList.push("OnSet" + methodNameWithType.split(":")[0] + ";");
+                        var messageType:String = methodNameWithType.split(":")[0];
+                        enumValueList.push("OnSet" + messageType + ";");
 
                         line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + model_name);
                         line = line.split("final ").join("function ");
@@ -260,10 +262,12 @@ class ModelFromTypeDef extends Script
                     var name:String = line.substring(line.indexOf("final ") + 6, line.indexOf(":"));
                     var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
                     var type:String = arr[1].split(";").join("");
+                    var messageType:String = "OnSet" + u_name;
 
                     line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + sep(2);
                     line += setterTemplate.split("${name}").join(name).split("${u_name}").join(u_name)
-                        .split("${type}").join(type).split("${model_name}").join("I" + model_name) + sep(2);
+                        .split("${type}").join(type).split("${model_name}").join(model_name)
+                        .split("${message_type}").join(messageType) + sep(2);
 
                     assign += "_" + name + " = " + data + "." + name + ";" + sep() + "        ";
                 }
@@ -315,8 +319,6 @@ class ModelFromTypeDef extends Script
             }
 
             prevLine = line;
-
-            trace("PIZDAAAA " + nextLine + " " + add);
         }
 
         return formattedText;

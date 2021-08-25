@@ -1,12 +1,14 @@
 package typedeftest;
 
-import mock.building.IBuildingModel;
-import mock.building.BuildingTypeDef;
-import utest.Assert;
-import mock.gameObject.IGameObjectModel;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
+import mock.building.BuildingTypeDef;
+import mock.building.IBuildingModel;
+import mock.gameObject.GameObjectModelMessageType;
 import mock.gameObject.GameObjectTypeDef;
+import mock.gameObject.IGameObjectModel;
+import utest.Assert;
+import utest.Async;
 import utest.Test;
 
 class ModelFromTypeDefTest extends Test
@@ -67,5 +69,18 @@ class ModelFromTypeDefTest extends Test
         Assert.equals("ololo", model.name);
         Assert.equals(1, model.creationTime);
         Assert.equals(2, model.maxUnits);
+    }
+
+    public function testTypeDefMessage(async:Async):Void
+    {
+        var data:GameObjectTypeDef = {id: "id", name: "name"};
+        factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
+
+        var model:IGameObjectModel = factory.getInstance(IGameObjectModel);
+        model.addMessageListener(GameObjectModelMessageType.OnSetId, m -> {
+            Assert.isTrue(true);
+            async.done();
+        });
+        model.dispatchMessage(GameObjectModelMessageType.OnSetId);
     }
 }
