@@ -12,6 +12,7 @@ import sys.io.File;
 *
 * -Din - path to input directory
 * -Doverwrite - overwrite existing files (optional)
+* -Dverbose - extended logs (optional)
 **/
 class ModelFromTypeDef extends Script
 {
@@ -26,6 +27,7 @@ class ModelFromTypeDef extends Script
     private var input:String;
     private var output:String;
     private var overwrite:Bool;
+    private var verbose:Bool;
 
     public function new()
     {
@@ -42,6 +44,7 @@ class ModelFromTypeDef extends Script
 
         input = workingDirectory + defines.get("in");
         overwrite = defines.exists("overwrite");
+        verbose = defines.exists("overwrite");
 
         loadTemplate();
         convertDir(input);
@@ -84,7 +87,12 @@ class ModelFromTypeDef extends Script
     {
         var typedefFile:String = File.getContent(path);
 
-        trace("Generate from typedef: \r\n" + typedefFile);
+        trace("Generate model from typedef: " + fileName);
+
+        if (verbose)
+        {
+            trace(typedefFile);
+        }
 
         save(generate(fileName, typedefFile, iModelImmutableTemplate, false, true));
         save(generate(fileName, typedefFile, iModelTemplate, false));
@@ -109,7 +117,16 @@ class ModelFromTypeDef extends Script
             }
         }
 
-        if (canSave) File.saveContent(outputFile, result.data);
+        if (canSave)
+        {
+            File.saveContent(outputFile, result.data);
+
+            if (verbose)
+            {
+                trace("File created: " + outputFile);
+                trace(result.data);
+            }
+        }
     }
 
     private function generate(fileName:String, typedefFile:String, template:String, isClass:Bool,
@@ -279,12 +296,12 @@ class ModelFromTypeDef extends Script
 
         for (line in lineList)
         {
-            var line:String = StringTools.trim(line);
             var arr = line.split("> ");
             if (arr.length > 1)
             {
                 result = arr[1].split(",").join("").split("TypeDef").join("Model");
-                trace("Base model: " + result);
+
+                if (verbose) trace("Base model: " + result);
 
                 break;
             }
