@@ -216,28 +216,37 @@ class ModelFromTypeDef extends Script
                 {
                     if (outputFileName == null) outputFileName = "I" + model_name + "Immutable";
 
-                    line = arr.join("(get, never):");
+                    line = arr.join("(get, never):").split("final").join("var");
                 } else
                 if (!isClass)
                 {
                     if (outputFileName == null) outputFileName = "I" + model_name;
 
                     arr = line.split("var ");
+
                     if (arr.length > 1)
                     {
-                        var char:String = line.charAt(4).toUpperCase();
-                        line = line.substring(4, 0) + "set" + char + line.substring(5, line.length);
+                        trace("Please, use final instead of var in typeDef to keep immutability!");
+                        Sys.exit(1);
+                    }
+
+                    arr = line.split("final ");
+
+                    if (arr.length > 1)
+                    {
+                        var char:String = line.charAt(6).toUpperCase();
+                        line = line.substring(6, 0) + "set" + char + line.substring(7, line.length);
 
                         var type:String = line.split(":")[1].split(";").join("");
 
                         line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + model_name);
-                        line = line.split("var ").join("function ");
+                        line = line.split("final ").join("function ");
                     }
                 } else
                 {
                     if (outputFileName == null) outputFileName = model_name;
 
-                    var name:String = line.substring(line.indexOf("var ") + 4, line.indexOf(":"));
+                    var name:String = line.substring(line.indexOf("final ") + 6, line.indexOf(":"));
                     var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
                     var type:String = arr[1].split(";").join("");
 

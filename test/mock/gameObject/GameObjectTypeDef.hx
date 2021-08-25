@@ -2,6 +2,6 @@ package mock.gameObject;
 
 typedef GameObjectTypeDef =
 {
-    var id:String;
-    var name:String;
+    final id:String;
+    final name:String;
 }
