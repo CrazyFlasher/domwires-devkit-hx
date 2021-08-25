@@ -11,5 +11,4 @@ neko: "2.3.0"
 # services: mongodb
 
 script:
- - haxe scripts/clean.hxml
  - haxe scripts/build.hxml
