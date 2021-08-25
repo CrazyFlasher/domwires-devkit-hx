@@ -1,5 +1,6 @@
 package ;
 
+import utils.FileUtils;
 import hxp.Script;
 import sys.FileSystem;
 import sys.io.File;
@@ -72,9 +73,8 @@ class ModelFromTypeDef extends Script
 
     private function traceTemplate(name:String, content:String):Void
     {
-        trace("-------------- " + name + "--------------");
-        trace("\r\n");
-        trace(content);
+        trace(sep() + "-------------- " + name + "--------------");
+        trace(sep() + content);
     }
 
     private function convertDir(path:String):Void
@@ -108,7 +108,7 @@ class ModelFromTypeDef extends Script
 
         if (verbose)
         {
-            trace("\r\n" + typedefFile);
+            trace(sep() + typedefFile);
         }
 
         save(generate(fileName, typedefFile, iModelImmutableTemplate, false, true));
@@ -141,7 +141,7 @@ class ModelFromTypeDef extends Script
             if (verbose)
             {
                 trace("File created: " + outputFile);
-                trace("\r\n" + result.data);
+                trace(sep() + result.data);
             }
         }
     }
@@ -152,7 +152,7 @@ class ModelFromTypeDef extends Script
         var outputFileName:String = null;
 
         var prefix:String = fileName.split("TypeDef.hx")[0];
-        var lineList:Array<String> = typedefFile.split("\r\n");
+        var lineList:Array<String> = typedefFile.split(sep());
 
         var baseModel:String = getBaseModel(lineList);
 
@@ -162,7 +162,7 @@ class ModelFromTypeDef extends Script
         var model_base_name:String = "AbstractModel";
         var model_base_interface:String = "IModel";
         var data:String = prefix.charAt(0).toLowerCase() + prefix.substring(1, prefix.length) + "Data";
-        var imports:String = "import com.domwires.core.mvc.model.*;\r\n";
+        var imports:String = "import com.domwires.core.mvc.model.*;" + sep();
         var over:String = "";
         var sup:String = "";
 
@@ -193,7 +193,7 @@ class ModelFromTypeDef extends Script
 
         imports += package_name.split("package ").join("import ").split(";").join("." + model_name + ";");
 
-        var out:String = package_name + "\r\n\r\n" + template
+        var out:String = package_name + sep() + FileUtils.lineSeparator() + template
             .split("${imports}").join(imports)
             .split("${data}").join(data)
             .split("${over}").join(over)
@@ -241,14 +241,14 @@ class ModelFromTypeDef extends Script
                     var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
                     var type:String = arr[1].split(";").join("");
 
-                    line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + "\r\n\r\n";
+                    line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + sep(2);
                     line += setterTemplate.split("${name}").join(name).split("${u_name}").join(u_name)
-                        .split("${type}").join(type).split("${model_name}").join("I" + model_name) + "\r\n\r\n";
+                        .split("${type}").join(type).split("${model_name}").join("I" + model_name) + sep(2);
 
-                    assign += "_" + name + " = " + data + "." + name + ";\r\n        ";
+                    assign += "_" + name + " = " + data + "." + name + ";" + sep() + "        ";
                 }
 
-                if (content == "") !isClass ? line += "\r\n    " : "";
+                if (content == "") !isClass ? line += sep() + "   " : "";
                 content += line;
             }
         }
@@ -263,7 +263,7 @@ class ModelFromTypeDef extends Script
     private function removeEmptyLines(text:String):String
     {
         var formattedText:String = "";
-        var lineList:Array<String> = text.split("\r\n");
+        var lineList:Array<String> = text.split(sep());
 
         var prevLine:String = null;
         var add:Bool = true;
@@ -285,7 +285,7 @@ class ModelFromTypeDef extends Script
 
             if (add)
             {
-                formattedText += line + "\r\n";
+                formattedText += line + sep();
             }
 
             prevLine = line;
@@ -330,6 +330,18 @@ class ModelFromTypeDef extends Script
     private function isTypeDef(fileName:String):Bool
     {
         return fileName.substr(fileName.length - 10) == "TypeDef.hx";
+    }
+
+    private function sep(x:Int = 1):String
+    {
+        var out:String = "";
+
+        for (i in 0...x)
+        {
+            out += FileUtils.lineSeparator();
+        }
+
+        return out;
     }
 }
 

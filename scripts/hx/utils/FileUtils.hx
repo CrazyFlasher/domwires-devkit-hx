@@ -25,4 +25,9 @@ class FileUtils
             FileSystem.deleteDirectory(path);
         }
     }
+
+    public static function lineSeparator():String
+    {
+        return Sys.systemName() == "Windows" ? "\r\n" : "\n";
+    }
 }
