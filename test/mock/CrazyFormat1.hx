@@ -1,11 +1,11 @@
 package mock; @Model
 
-typedef                  CrazyFormat1TypeDef
+typedef                  CrazyFormat1
 =
 
 {                                                           >
 
-mock.building.BuildingTypeDef,
+mock.building.Building,
 
     final
 a:      Int;

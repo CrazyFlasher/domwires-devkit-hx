@@ -1,10 +1,9 @@
 package ;
 
-import utils.StringUtils;
-import utils.FileUtils;
 import hxp.Script;
 import sys.FileSystem;
 import sys.io.File;
+import utils.FileUtils;
 
 /**
 * Generates Domwires compatible models from typedefs.
@@ -103,7 +102,7 @@ class ModelFromTypeDef extends Script
                     convertDir(p);
                 } else
                 {
-                    if (isTypeDef(fileName))
+                    if (fileName.substr(fileName.length - 3) == ".hx")
                     {
                         convertFile(p, fileName);
                     }
@@ -115,11 +114,12 @@ class ModelFromTypeDef extends Script
     private function convertFile(path:String, fileName:String):Void
     {
         typedefFile = File.getContent(path);
+
         this.typeDefFileName = fileName;
 
         typedefFile = StringUtils.removeAllEmptySpace(typedefFile);
 
-        if (typedefFile.split("@Model").length > 1)
+        if (typedefFile.split(" @Model typedef ").length == 2)
         {
             output = path.split(fileName)[0];
 
@@ -227,30 +227,16 @@ class ModelFromTypeDef extends Script
         var packageName:String = packageValue.split(" ")[1];
         var typeDefName:String = typeDefSplit[1].split("=")[0];
 
-        var typeDefNameSplit:Array<String> = typeDefName.split("TypeDef");
-        if (typeDefName.split("TypeDef").length != 2 || typeDefName.substr(typeDefName.length - 7) != "TypeDef")
-        {
-            trace("Error: typdef name should end with 'TypeDef'" + typeDefFileName);
-            hasErrors = true;
-        }
-
         var baseModelName:String = null;
         if (arrowSplit.length > 1)
         {
             var baseTypeDef:String = arrowSplit[1].substring(0, arrowSplit[1].indexOf(","));
-            var baseTypeDefSplit:Array<String> = baseTypeDef.split("TypeDef");
-            if (baseTypeDefSplit.length != 2 || baseTypeDef.substr(baseTypeDef.length - 7) != "TypeDef")
-            {
-                trace("Error: base typdef name should end with 'TypeDef'" + typeDefFileName);
-                hasErrors = true;
-            }
-
-            baseModelName = baseTypeDefSplit[0] + "Model";
+            baseModelName = baseTypeDef + "Model";
 
             trace("Base model: " + baseModelName);
         }
 
-        var modelPrefix:String = typeDefNameSplit[0];
+        var modelPrefix:String = typeDefName;
         var modelName:String = modelPrefix + "Model";
         var modelBaseName:String = "AbstractModel";
         var modelBaseInterface:String = "IModel";
@@ -425,11 +411,6 @@ class ModelFromTypeDef extends Script
         return formattedText;
     }
 
-    private function isTypeDef(fileName:String):Bool
-    {
-        return fileName.substr(fileName.length - 10) == "TypeDef.hx";
-    }
-
     private function sep(x:Int = 1):String
     {
         var out:String = "";
@@ -466,4 +447,37 @@ enum ObjectType
     Mutable;
     Class;
     Enum;
+}
+
+class StringUtils
+{
+    public static function isEmpty(input:String):Bool
+    {
+        for (i in 0...input.length)
+        {
+            if (input.charAt(i) != " ")
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static function removeAllEmptySpace(input:String):String
+    {
+        return input
+        .split("          ").join("")
+        .split("        ").join("")
+        .split("    ").join("")
+        .split("  ").join("")
+        .split(" ").join("")
+        .split(FileUtils.lineSeparator()).join("")
+        .split("final").join("final ")
+        .split("var").join("var ")
+        .split("typedef").join("typedef ")
+        .split("package").join("package ")
+        .split("import").join("import ")
+        .split("@Model").join(" @Model ");
+    }
 }

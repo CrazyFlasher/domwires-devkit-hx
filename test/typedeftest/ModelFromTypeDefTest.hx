@@ -2,12 +2,12 @@ package typedeftest;
 
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
-import mock.CrazyFormat1TypeDef;
+import mock.CrazyFormat1;
 import mock.ICrazyFormat1Model;
-import mock.building.BuildingTypeDef;
+import mock.building.Building;
 import mock.building.IBuildingModel;
 import mock.gameObject.GameObjectModelMessageType;
-import mock.gameObject.GameObjectTypeDef;
+import mock.gameObject.GameObject;
 import mock.gameObject.IGameObjectModel;
 import utest.Assert;
 import utest.Async;
@@ -32,8 +32,8 @@ class ModelFromTypeDefTest extends Test
         var id:String = "some_object_1";
         var name:String = "cool_game_object";
 
-        var data:GameObjectTypeDef = {id: id, name: name};
-        factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
+        var data:GameObject = {id: id, name: name};
+        factory.mapClassNameToValue("mock.gameObject.GameObject", data);
 
         var model:IGameObjectModel = factory.getInstance(IGameObjectModel);
 
@@ -53,15 +53,15 @@ class ModelFromTypeDefTest extends Test
         var creationTime:Int = 12345;
         var maxUnits:Int = 4;
 
-        var data:BuildingTypeDef = {
+        var data:Building = {
             id: id,
             name: name,
             creationTime: creationTime,
             maxUnits: maxUnits
         };
 
-        factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
-        factory.mapClassNameToValue("mock.building.BuildingTypeDef", data);
+        factory.mapClassNameToValue("mock.gameObject.GameObject", data);
+        factory.mapClassNameToValue("mock.building.Building", data);
 
         var model:IBuildingModel = factory.getInstance(IBuildingModel);
 
@@ -81,8 +81,8 @@ class ModelFromTypeDefTest extends Test
 
     public function testTypeDefMessage(async:Async):Void
     {
-        var data:GameObjectTypeDef = {id: "id", name: "name"};
-        factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
+        var data:GameObject = {id: "id", name: "name"};
+        factory.mapClassNameToValue("mock.gameObject.GameObject", data);
 
         var model:IGameObjectModel = factory.getInstance(IGameObjectModel);
         model.addMessageListener(GameObjectModelMessageType.OnSetId, m ->
@@ -95,10 +95,10 @@ class ModelFromTypeDefTest extends Test
 
     public function testUglyTypeDef():Void
     {
-        var data:CrazyFormat1TypeDef = {a: 1, b: "two", id: "id", name: "name", maxUnits: 5, creationTime: 1000};
-        factory.mapClassNameToValue("mock.gameObject.GameObjectTypeDef", data);
-        factory.mapClassNameToValue("mock.building.BuildingTypeDef", data);
-        factory.mapClassNameToValue("mock.CrazyFormat1TypeDef", data);
+        var data:CrazyFormat1 = {a: 1, b: "two", id: "id", name: "name", maxUnits: 5, creationTime: 1000};
+        factory.mapClassNameToValue("mock.gameObject.GameObject", data);
+        factory.mapClassNameToValue("mock.building.Building", data);
+        factory.mapClassNameToValue("mock.CrazyFormat1", data);
 
         var model:ICrazyFormat1Model = factory.getInstance(ICrazyFormat1Model);
 
