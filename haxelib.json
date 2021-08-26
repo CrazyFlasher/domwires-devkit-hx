@@ -22,6 +22,10 @@
   ],
   "classPath": "src",
   "dependencies": {
-    "DomWires": "1.0.0-alpha.15"
+    "DomWires": "1.0.0-alpha.15",
+    "hxnodejs": "12.1.0",
+    "hxp": "1.1.4",
+    "utest": "1.13.2",
+    "test-adapter": "1.2.10"
   }
 }
