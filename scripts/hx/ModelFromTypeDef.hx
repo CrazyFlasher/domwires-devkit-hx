@@ -27,6 +27,7 @@ class ModelFromTypeDef extends Script
     private var setterTemplate:String;
 
     private var input:String;
+    private var templatesPath:String;
     private var output:String;
     private var overwrite:Bool;
     private var verbose:Bool;
@@ -48,7 +49,14 @@ class ModelFromTypeDef extends Script
             trace("Define it as flag -Din=path_to_dir...");
             Sys.exit(1);
         }
+        if (!defines.exists("templatesPath"))
+        {
+            trace("Path to templates directory is not specified!");
+            trace("Define it as flag -DtemplatesPath=path_to_templates...");
+            Sys.exit(1);
+        }
 
+        templatesPath = workingDirectory + defines.get("templatesPath");
         input = workingDirectory + defines.get("in");
         overwrite = defines.exists("overwrite");
         verbose = defines.exists("overwrite");
@@ -59,12 +67,12 @@ class ModelFromTypeDef extends Script
 
     private function loadTemplate():Void
     {
-        modelTemplate = File.getContent("./res/ModelTemplate");
-        iModelTemplate = File.getContent("./res/IModelTemplate");
-        iModelImmutableTemplate = File.getContent("./res/IModelImmutableTemplate");
-        modelMessageTypeTemplate = File.getContent("./res/ModelMessageTypeTemplate");
-        getterTemplate = File.getContent("./res/GetterTemplate");
-        setterTemplate = File.getContent("./res/SetterTemplate");
+        modelTemplate = File.getContent(templatesPath + "/ModelTemplate");
+        iModelTemplate = File.getContent(templatesPath + "/IModelTemplate");
+        iModelImmutableTemplate = File.getContent(templatesPath + "/IModelImmutableTemplate");
+        modelMessageTypeTemplate = File.getContent(templatesPath + "/ModelMessageTypeTemplate");
+        getterTemplate = File.getContent(templatesPath + "/GetterTemplate");
+        setterTemplate = File.getContent(templatesPath + "/SetterTemplate");
 
         if (verbose)
         {
