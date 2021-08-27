@@ -1,6 +1,6 @@
 {
-  "name": "domwires-ext-hx",
-  "url": "https://github.com/CrazyFlasher/domwires-ext-hx",
+  "name": "domwires-devkit-hx",
+  "url": "https://github.com/CrazyFlasher/domwires-devkit-hx",
   "license": "MIT",
   "tags": [
     "mvc",
@@ -14,7 +14,7 @@
     "mongodb",
     "express"
   ],
-  "description": "Extensions for DomWires Framework",
+  "description": "DomWires Framework Devkit",
   "version": "1.0.0-alpha.1",
   "releasenote": "See commit logs on GitHub",
   "contributors": [

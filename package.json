@@ -1,7 +1,7 @@
 {
-  "name": "domwires-ext-hx",
+  "name": "domwires-devkit-hx",
   "version": "1.0.0-alpha.1",
-  "description": "Extensions for DomWires Framework",
+  "description": "DomWires Framework Devkit",
   "main": "index.js",
   "scripts": {
     "postinstall": "dts2hx --all --allowIntersectionRasterization"
