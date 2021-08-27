@@ -1,8 +1,8 @@
-package mock.building;
+package mock;
 
 @Model typedef Building =
 {
-    > mock.gameObject.GameObject,
+    > mock.GameObject,
 
     final maxUnits:Int;
     final creationTime:Int;

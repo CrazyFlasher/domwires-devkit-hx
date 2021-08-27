@@ -5,7 +5,7 @@ typedef                  CrazyFormat1
 
 {                                                           >
 
-mock.building.Building,
+mock.Building,
 
     final
 a:      Int;

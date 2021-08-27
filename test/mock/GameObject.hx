@@ -1,4 +1,4 @@
-package mock.gameObject;
+package mock;
 
 @Model typedef GameObject =
 {

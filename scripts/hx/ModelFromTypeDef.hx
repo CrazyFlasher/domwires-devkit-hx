@@ -14,6 +14,7 @@ import utils.FileUtils;
 * -Din - path to input directory
 * -Doverwrite - overwrite existing files (optional)
 * -Dverbose - extended logs (optional)
+* -Dnewpackage - place model to separate package (optional)
 **/
 class ModelFromTypeDef extends Script
 {
@@ -29,6 +30,7 @@ class ModelFromTypeDef extends Script
     private var templatesPath:String;
     private var output:String;
     private var overwrite:Bool;
+    private var newPackage:Bool;
     private var verbose:Bool;
 
     private var enumValueList:Array<String>;
@@ -59,6 +61,7 @@ class ModelFromTypeDef extends Script
         input = workingDirectory + defines.get("in");
         overwrite = defines.exists("overwrite");
         verbose = defines.exists("overwrite");
+        newPackage = defines.exists("newpackage");
 
         loadTemplate();
         convertDir(input);
@@ -146,7 +149,19 @@ class ModelFromTypeDef extends Script
             Sys.exit(1);
         }
 
-        var outputFile:String = output + "/" + result.fileName + ".hx";
+        var outputFile:String = null;
+
+        if (newPackage)
+        {
+            var dirName:String = getNewPackageName(typeDefFileName);
+
+            outputFile = output + dirName + "/" + result.fileName + ".hx";
+
+            FileSystem.createDirectory(output + dirName);
+        } else
+        {
+            outputFile = output + result.fileName + ".hx";
+        }
 
         var canSave:Bool = true;
 
@@ -224,14 +239,23 @@ class ModelFromTypeDef extends Script
         }
 
         var packageValue:String = semicolonSplit[0];
-        var packageName:String = packageValue.split(" ")[1];
+        if (newPackage) packageValue += "." + getNewPackageName(typeDefFileName);
+        var packageName:String = packageValue.split("package ")[1];
         var typeDefName:String = typeDefSplit[1].split("=")[0];
 
         var baseModelName:String = null;
         if (arrowSplit.length > 1)
         {
-            var baseTypeDef:String = arrowSplit[1].substring(0, arrowSplit[1].indexOf(","));
-            baseModelName = baseTypeDef + "Model";
+            var baseTypeDefWithPackage:String = arrowSplit[1].substring(0, arrowSplit[1].indexOf(","));
+            if (newPackage)
+            {
+                var baseTypeDefWithPackageSplit:Array<String> = baseTypeDefWithPackage.split(".");
+                var baseTypeDef:String = baseTypeDefWithPackageSplit[baseTypeDefWithPackageSplit.length - 1];
+                var baseTypeDefPackage:String = baseTypeDefWithPackageSplit[0];
+                baseTypeDefWithPackage = baseTypeDefPackage + "." + baseTypeDef.charAt(0).toLowerCase() +
+                    baseTypeDef.substring(1, baseTypeDef.length) + "." + baseTypeDef;
+            }
+            baseModelName = baseTypeDefWithPackage + "Model";
 
             trace("Base model: " + baseModelName);
         }
@@ -267,7 +291,7 @@ class ModelFromTypeDef extends Script
 
         if (type == ObjectType.Mutable)
         {
-            imports += packageSplit.join("import ") + "." + modelName + ";";
+            imports += "import " + packageName + "." + modelName + ";";
         }
 
         var out:String = packageValue + ";" + sep(2) + template
@@ -409,6 +433,12 @@ class ModelFromTypeDef extends Script
         }
 
         return formattedText;
+    }
+
+    private function getNewPackageName(typeDefFileName:String):String
+    {
+        return typeDefFileName.charAt(0).toLowerCase() +
+            typeDefFileName.substring(1, typeDefFileName.length).split(".hx")[0];
     }
 
     private function sep(x:Int = 1):String
