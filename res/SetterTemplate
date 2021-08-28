@@ -4,7 +4,7 @@
     {
         _${name} = value;
 
-        dispatchMessage(${model_name}MessageType.${message_type});
+        dispatchMessage(${enum_name}MessageType.${message_type});
 
         return this;
     }

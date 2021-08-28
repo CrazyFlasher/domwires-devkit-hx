@@ -14,7 +14,6 @@ import utils.FileUtils;
 * -Din - path to input directory
 * -Doverwrite - overwrite existing files (optional)
 * -Dverbose - extended logs (optional)
-* -Dnewpackage - place model to separate package (optional)
 **/
 class ModelFromTypeDef extends Script
 {
@@ -30,7 +29,6 @@ class ModelFromTypeDef extends Script
     private var templatesPath:String;
     private var output:String;
     private var overwrite:Bool;
-    private var newPackage:Bool;
     private var verbose:Bool;
 
     private var enumValueList:Array<String>;
@@ -61,7 +59,6 @@ class ModelFromTypeDef extends Script
         input = workingDirectory + defines.get("in");
         overwrite = defines.exists("overwrite");
         verbose = defines.exists("overwrite");
-        newPackage = defines.exists("newpackage");
 
         loadTemplate();
         convertDir(input);
@@ -135,33 +132,32 @@ class ModelFromTypeDef extends Script
 
             enumValueList = [];
 
-            save(generate(ObjectType.Immutable));
-            save(generate(ObjectType.Mutable));
-            save(generate(ObjectType.Class));
-            save(generate(ObjectType.Enum));
+            create(true);
+            create(false);
         }
     }
 
-    private function save(result:OutData):Void
+    private function create(isBase:Bool):Void
+    {
+        save(generate(ObjectType.Immutable, isBase), isBase);
+        save(generate(ObjectType.Mutable, isBase), isBase);
+        save(generate(ObjectType.Class, isBase), isBase);
+        if (!isBase) save(generate(ObjectType.Enum, isBase), isBase);
+    }
+
+    private function save(result:OutData, isBase:Bool = false):Void
     {
         if (hasErrors)
         {
             Sys.exit(1);
         }
 
-        var outputFile:String = null;
+        var dirName:String = output + getNewPackageName(typeDefFileName, false);
+        if (isBase) dirName += "/gen";
 
-        if (newPackage)
-        {
-            var dirName:String = getNewPackageName(typeDefFileName);
+        var outputFile:String = dirName + "/" + result.fileName + ".hx";
 
-            outputFile = output + dirName + "/" + result.fileName + ".hx";
-
-            FileSystem.createDirectory(output + dirName);
-        } else
-        {
-            outputFile = output + result.fileName + ".hx";
-        }
+        FileSystem.createDirectory(dirName);
 
         var canSave:Bool = true;
 
@@ -187,7 +183,7 @@ class ModelFromTypeDef extends Script
         }
     }
 
-    private function generate(type:EnumValue):OutData
+    private function generate(type:EnumValue, isBase:Bool = false):OutData
     {
         var template:String = null;
 
@@ -238,30 +234,35 @@ class ModelFromTypeDef extends Script
             hasErrors = true;
         }
 
-        var packageValue:String = semicolonSplit[0];
-        if (newPackage) packageValue += "." + getNewPackageName(typeDefFileName);
+        var packageValue:String = semicolonSplit[0] + "." + getNewPackageName(typeDefFileName, isBase);
         var packageName:String = packageValue.split("package ")[1];
         var typeDefName:String = typeDefSplit[1].split("=")[0];
 
         var baseModelName:String = null;
-        if (arrowSplit.length > 1)
+        if (isBase)
         {
-            var baseTypeDefWithPackage:String = arrowSplit[1].substring(0, arrowSplit[1].indexOf(","));
-            if (newPackage)
+            if (arrowSplit.length > 1)
             {
+
+                var baseTypeDefWithPackage:String = arrowSplit[1].substring(0, arrowSplit[1].indexOf(","));
                 var baseTypeDefWithPackageSplit:Array<String> = baseTypeDefWithPackage.split(".");
                 var baseTypeDef:String = baseTypeDefWithPackageSplit[baseTypeDefWithPackageSplit.length - 1];
                 var baseTypeDefPackage:String = baseTypeDefWithPackageSplit[0];
                 baseTypeDefWithPackage = baseTypeDefPackage + "." + baseTypeDef.charAt(0).toLowerCase() +
-                    baseTypeDef.substring(1, baseTypeDef.length) + "." + baseTypeDef;
-            }
-            baseModelName = baseTypeDefWithPackage + "Model";
+                baseTypeDef.substring(1, baseTypeDef.length) + "." + baseTypeDef;
+                baseModelName = baseTypeDefWithPackage + "Model";
 
-            trace("Base model: " + baseModelName);
+                trace("Base model: " + baseModelName);
+            }
+        } else
+        {
+            baseModelName = packageName + ".gen.ModelGen";
         }
 
         var modelPrefix:String = typeDefName;
-        var modelName:String = modelPrefix + "Model";
+        var modelName:String = isBase ? "ModelGen" : modelPrefix + "Model";
+        var enumName:String = modelPrefix + "Model";
+//        var enumName:String = packageName.split(".gen").join(".") + modelPrefix + "Model";
         var modelBaseName:String = "AbstractModel";
         var modelBaseInterface:String = "IModel";
         var data:String = modelPrefix.charAt(0).toLowerCase() + modelPrefix.substring(1, modelPrefix.length) + "Data";
@@ -269,7 +270,7 @@ class ModelFromTypeDef extends Script
         var _override:String = "";
         var _super:String = "";
 
-        if (baseModelName != null)
+        if (baseModelName != null || !isBase)
         {
             modelBaseName = baseModelName;
 
@@ -294,9 +295,18 @@ class ModelFromTypeDef extends Script
             imports += "import " + packageName + "." + modelName + ";";
         }
 
-        var out:String = packageValue + ";" + sep(2) + template
+        var out:String = packageValue + ";" + sep(2) + template;
+
+        if (isBase)
+        {
+            out = out.split("${data}").join(data);
+        } else
+        {
+            out = out.split(tab() + "@Inject" + sep() + tab() + "private var ${data}:${typedef_name};").join("");
+        }
+
+        out = out
             .split("${imports}").join(imports)
-            .split("${data}").join(data)
             .split("${_override}").join(_override)
             .split("${_super}").join(_super)
             .split("${model_name}").join(modelName)
@@ -317,79 +327,98 @@ class ModelFromTypeDef extends Script
             }
         }
 
-        var paramList:Array<String> = arrowSplit.length > 1
-            ? equalSplit[1].split(",")[1].split(";")
-            : equalSplit[1].substring(1, equalSplit[1].lastIndexOf("}")).split(";");
-
-        paramList.pop();
-
-        for (param in paramList)
+        if (!isBase)
         {
-            if (param.split("final ").length != 2)
-            {
-                trace("Error: use 'final' to keep immutability: " + param);
-                hasErrors = true;
-            }
-        }
-
-        for (i in 0...paramList.length)
-        {
-            var line:String = "";
-
-            var param:String = paramList[i];
-            var paramTypeSplit:Array<String> = param.split(":");
-            var paramFinalSplit:Array<String> = param.split("final ");
-
-            if (paramTypeSplit.length != 2)
-            {
-                trace("Error: cannot parse type from param: " + param);
-                hasErrors = true;
-            }
-
             if (type == ObjectType.Immutable)
             {
-                if (outputFileName == null) outputFileName = "I" + modelName + "Immutable";
-
-                line = paramTypeSplit.join("(get, never):").split("final ").join("var ") + ";";
+                outputFileName = "I" + modelName + "Immutable";
             } else
             if (type == ObjectType.Mutable)
             {
-                if (outputFileName == null) outputFileName = "I" + modelName;
-
-                var char:String = paramFinalSplit[1].charAt(0).toUpperCase();
-                var methodNameWithType:String = char + paramFinalSplit[1].substring(1, paramFinalSplit[1].length);
-                line = param.substring(6, 0) + "set" + methodNameWithType;
-
-                var type:String = line.split(":")[1].split(";").join("");
-                var messageType:String = methodNameWithType.split(":")[0];
-                enumValueList.push("OnSet" + messageType + ";");
-
-                line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + modelName);
-                line = line.split("final ").join("function ") + ";";
+                outputFileName = "I" + modelName;
             } else
             if (type == ObjectType.Class)
             {
-                if (outputFileName == null) outputFileName = modelName;
+                outputFileName = modelName;
+            }
+        } else
+        {
+            var paramList:Array<String> = arrowSplit.length > 1
+            ? equalSplit[1].split(",")[1].split(";")
+            : equalSplit[1].substring(1, equalSplit[1].lastIndexOf("}")).split(";");
 
-                var name:String = paramFinalSplit[1].substring(0, paramFinalSplit[1].indexOf(":"));
-                var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
-                var type:String = paramFinalSplit[1].split(":")[1].split(";").join("");
-                var messageType:String = "OnSet" + u_name;
+            paramList.pop();
 
-                line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + sep(2);
-                line += setterTemplate.split("${name}").join(name).split("${u_name}").join(u_name)
+            for (param in paramList)
+            {
+                if (param.split("final ").length != 2)
+                {
+                    trace("Error: use 'final' to keep immutability: " + param);
+                    hasErrors = true;
+                }
+            }
+
+            for (i in 0...paramList.length)
+            {
+                var line:String = "";
+
+                var param:String = paramList[i];
+                var paramTypeSplit:Array<String> = param.split(":");
+                var paramFinalSplit:Array<String> = param.split("final ");
+
+                if (paramTypeSplit.length != 2)
+                {
+                    trace("Error: cannot parse type from param: " + param);
+                    hasErrors = true;
+                }
+
+                if (type == ObjectType.Immutable)
+                {
+                    if (outputFileName == null) outputFileName = "I" + modelName + "Immutable";
+
+                    line = paramTypeSplit.join("(get, never):").split("final ").join("var ") + ";";
+                } else
+                if (type == ObjectType.Mutable)
+                {
+                    if (outputFileName == null) outputFileName = "I" + modelName;
+
+                    var char:String = paramFinalSplit[1].charAt(0).toUpperCase();
+                    var methodNameWithType:String = char + paramFinalSplit[1].substring(1, paramFinalSplit[1].length);
+                    line = param.substring(6, 0) + "set" + methodNameWithType;
+
+                    var type:String = line.split(":")[1].split(";").join("");
+                    var messageType:String = methodNameWithType.split(":")[0];
+                    enumValueList.push("OnSet" + messageType + ";");
+
+                    line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + modelName);
+                    line = line.split("final ").join("function ") + ";";
+                } else
+                if (type == ObjectType.Class)
+                {
+                    if (outputFileName == null) outputFileName = modelName;
+
+                    var name:String = paramFinalSplit[1].substring(0, paramFinalSplit[1].indexOf(":"));
+                    var u_name:String = name.charAt(0).toUpperCase() + name.substring(1, name.length);
+                    var type:String = paramFinalSplit[1].split(":")[1].split(";").join("");
+                    var messageType:String = "OnSet" + u_name;
+
+                    line = getterTemplate.split("${name}").join(name).split("${type}").join(type) + sep(2);
+                    line += setterTemplate.split("${name}").join(name).split("${u_name}").join(u_name)
                     .split("${type}").join(type).split("${model_name}").join(modelName)
+                    .split("${enum_name}").join(enumName)
                     .split("${message_type}").join(messageType) + sep(2);
 
-                assign += "_" + name + " = " + data + "." + name + ";" + sep() + tab(2);
-            }
+                    assign += "_" + name + " = " + data + "." + name + ";" + sep() + tab(2);
+                }
 
-            if (type != ObjectType.Enum)
-            {
-                if (content == "") type != ObjectType.Class ? line += sep() + tab() : "";
-                content += line;
+                if (type != ObjectType.Enum)
+                {
+                    if (content == "") type != ObjectType.Class ? line += sep() + tab() : "";
+                    content += line;
+                }
             }
         }
+
 
         out = out.split("${content}").join(content).split("${assign}").join(assign);
 
@@ -419,7 +448,7 @@ class ModelFromTypeDef extends Script
             {
                 add = true;
             } else
-            if (StringUtils.isEmpty(prevLine) || (nextLine.split("}").length == 2))
+            if (StringUtils.isEmpty(prevLine) || (nextLine.split("}").length == 2) || (prevLine.split("{").length == 2))
             {
                 add = false;
             }
@@ -435,10 +464,10 @@ class ModelFromTypeDef extends Script
         return formattedText;
     }
 
-    private function getNewPackageName(typeDefFileName:String):String
+    private function getNewPackageName(typeDefFileName:String, isBase:Bool):String
     {
         return typeDefFileName.charAt(0).toLowerCase() +
-            typeDefFileName.substring(1, typeDefFileName.length).split(".hx")[0];
+            typeDefFileName.substring(1, typeDefFileName.length).split(".hx")[0] + (isBase ? ".gen" : "");
     }
 
     private function sep(x:Int = 1):String

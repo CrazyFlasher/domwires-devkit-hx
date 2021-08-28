@@ -1,1 +1,0 @@
--cmd haxelib run hxp ./scripts/hx/ModelFromTypeDef.hx -Din=./test/mock -DtemplatesPath=./res/ -Doverwrite -Dverbose -Dnewpackage

@@ -112,37 +112,4 @@ class ModelFromTypeDefTest extends Test
         Assert.equals(1, model.a);
         Assert.equals("two", model.b);
     }
-
-    public function testExtendedTypeDefSamePackage():Void
-    {
-        var id:String = "some_object_1";
-        var name:String = "cool_game_object";
-        var creationTime:Int = 12345;
-        var maxUnits:Int = 4;
-
-        var data:Building = {
-            id: id,
-            name: name,
-            creationTime: creationTime,
-            maxUnits: maxUnits
-        };
-
-        factory.mapClassNameToValue("mock.GameObject", data);
-        factory.mapClassNameToValue("mock.Building", data);
-
-        var model:mock.IBuildingModel = factory.getInstance(mock.IBuildingModel);
-
-        Assert.equals(id, model.id);
-        Assert.equals(name, model.name);
-        Assert.equals(creationTime, model.creationTime);
-        Assert.equals(maxUnits, model.maxUnits);
-
-        model.setId("go").setName("ololo");
-        model.setCreationTime(1).setMaxUnits(2);
-
-        Assert.equals("go", model.id);
-        Assert.equals("ololo", model.name);
-        Assert.equals(1, model.creationTime);
-        Assert.equals(2, model.maxUnits);
-    }
 }
