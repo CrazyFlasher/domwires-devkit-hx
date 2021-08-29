@@ -25,6 +25,8 @@ class ModelFromTypeDef extends Script
     private var getterTemplate:String;
     private var setterTemplate:String;
 
+    private var modelName:String;
+
     private var input:String;
     private var templatesPath:String;
     private var output:String;
@@ -58,7 +60,7 @@ class ModelFromTypeDef extends Script
         templatesPath = workingDirectory + defines.get("templatesPath");
         input = workingDirectory + defines.get("in");
         overwrite = defines.exists("overwrite");
-        verbose = defines.exists("overwrite");
+        verbose = defines.exists("verbose");
 
         loadTemplate();
         convertDir(input);
@@ -142,11 +144,13 @@ class ModelFromTypeDef extends Script
         save(generate(ObjectType.Immutable, isBase), isBase);
         save(generate(ObjectType.Mutable, isBase), isBase);
         save(generate(ObjectType.Class, isBase), isBase);
-        if (!isBase) save(generate(ObjectType.Enum, isBase), isBase);
+        if (!isBase) save(generate(ObjectType.Enum, isBase), isBase, true);
     }
 
-    private function save(result:OutData, isBase:Bool = false):Void
+    private function save(result:OutData, isBase:Bool = false, isEnum:Bool = false):Void
     {
+        var overwrite:Bool = this.overwrite || isBase;
+
         if (hasErrors)
         {
             Sys.exit(1);
@@ -158,6 +162,10 @@ class ModelFromTypeDef extends Script
         var outputFile:String = dirName + "/" + result.fileName + ".hx";
 
         FileSystem.createDirectory(dirName);
+        if (!isBase)
+        {
+            File.saveContent(dirName + "/.gitignore", "gen");
+        }
 
         var canSave:Bool = true;
 
@@ -167,7 +175,37 @@ class ModelFromTypeDef extends Script
 
             if (!overwrite)
             {
-                trace("'" + outputFile + "' already exists. Use -D overwrite to overwrite existing files...");
+                if (isEnum)
+                {
+                    canSave = true;
+
+                    var body:String = File.getContent(outputFile);
+                    body = StringUtils.removeAllEmptySpace(body);
+
+                    var content:String = body.substring(body.indexOf("{") + 1, body.indexOf("}"));
+                    var valueList:Array<String> = content.split(";");
+                    if (valueList.length > 0) valueList.pop();
+                    valueList = removeDuplicates(valueList.concat(enumValueList));
+
+                    content = "";
+
+                    for (value in valueList)
+                    {
+                        content += (valueList.indexOf(value) != 0 ? tab() : "") + value + ";" + sep();
+                    }
+
+                    result.data = removeEmptyLines(modelMessageTypeTemplate
+                    .split("${model_name}").join(modelName)
+                    .split("${content}").join(content));
+
+                    if (verbose)
+                    {
+                        trace("Existing enum values: " + content);
+                    }
+                } else
+                {
+                    trace("'" + outputFile + "' already exists. Use -D overwrite to overwrite existing files...");
+                }
             }
         }
 
@@ -177,7 +215,7 @@ class ModelFromTypeDef extends Script
 
             if (verbose)
             {
-                trace("File created: " + outputFile);
+                trace("Output file: " + outputFile);
                 trace(sep() + result.data);
             }
         }
@@ -260,9 +298,8 @@ class ModelFromTypeDef extends Script
         }
 
         var modelPrefix:String = typeDefName;
-        var modelName:String = isBase ? "ModelGen" : modelPrefix + "Model";
+        modelName = isBase ? "ModelGen" : modelPrefix + "Model";
         var enumName:String = modelPrefix + "Model";
-//        var enumName:String = packageName.split(".gen").join(".") + modelPrefix + "Model";
         var modelBaseName:String = "AbstractModel";
         var modelBaseInterface:String = "IModel";
         var data:String = modelPrefix.charAt(0).toLowerCase() + modelPrefix.substring(1, modelPrefix.length) + "Data";
@@ -323,7 +360,7 @@ class ModelFromTypeDef extends Script
 
             for (value in enumValueList)
             {
-                content += value + sep() + tab();
+                content += value + ";" + sep() + tab();
             }
         }
 
@@ -388,7 +425,7 @@ class ModelFromTypeDef extends Script
 
                     var type:String = line.split(":")[1].split(";").join("");
                     var messageType:String = methodNameWithType.split(":")[0];
-                    enumValueList.push("OnSet" + messageType + ";");
+                    enumValueList.push("OnSet" + messageType);
 
                     line = line.split(":").join("(value:" + type + "):").split("):" + type).join("):I" + modelName);
                     line = line.split("final ").join("function ") + ";";
@@ -492,6 +529,21 @@ class ModelFromTypeDef extends Script
         }
 
         return out;
+    }
+
+    private function removeDuplicates(arr:Array<String>):Array<String>
+    {
+        var newArr:Array<String> = [];
+
+        for (value in arr)
+        {
+            if (newArr.indexOf(value) == -1)
+            {
+                newArr.push(value);
+            }
+        }
+
+        return newArr;
     }
 }
 
