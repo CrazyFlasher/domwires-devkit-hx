@@ -1,5 +1,6 @@
 package com.domwires.ext.service.net.impl;
 
+import js.node.http.Method;
 import js.node.Net;
 import utest.Async;
 import utest.Test;
@@ -16,13 +17,9 @@ class WebServerServiceTest extends Test
     private var factory:IAppFactory;
     private var service:IWebServerService;
 
-    public function setupClass():Void
-    {
-    }
+    public function setupClass():Void {}
 
-    public function teardownClass():Void
-    {
-    }
+    public function teardownClass():Void {}
 
     public function setup():Void
     {
@@ -32,26 +29,66 @@ class WebServerServiceTest extends Test
         factory.mapClassNameToValue("Int", 3001, "IWebServerService_tcpPort");
     }
 
-    public function teardown():Void
+    @:timeout(5000)
+    public function teardown(async:Async):Void
     {
-        factory.clear();
-        service.dispose();
+        var httpClosed:Bool = !service.getIsOpened(ServerType.Http);
+        var tcpClosed:Bool = !service.getIsOpened(ServerType.Tcp);
+
+        var complete:Void -> Void = () -> 
+        {
+            service.dispose();
+            async.done();
+        };
+
+        service.addMessageListener(WebServerServiceMessageType.TcpClosed, m ->
+        {
+            tcpClosed = true;
+
+            if (httpClosed)
+            {
+                complete();
+            }
+        });
+
+        service.addMessageListener(WebServerServiceMessageType.HttpClosed, m ->
+        {
+            httpClosed = true;
+
+            if (tcpClosed)
+            {
+                complete();
+            }
+        });
+
+        service.close();
     }
 
     @:timeout(5000)
     public function testClose(async:Async):Void
     {
+        var httpClosed:Bool = false;
+        var tcpClosed:Bool = false;
+
         service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.HttpClosed, m -> {
+        service.addMessageListener(WebServerServiceMessageType.HttpClosed, m ->
+        {
+            httpClosed = true;
+            
             Assert.isFalse(service.getIsOpened(ServerType.Http));
 
             service.close(ServerType.Tcp);
+
+            if (tcpClosed) async.done();
         });
 
-        service.addMessageListener(WebServerServiceMessageType.TcpClosed, m -> {
+        service.addMessageListener(WebServerServiceMessageType.TcpClosed, m ->
+        {
+            tcpClosed = true;
+
             Assert.isFalse(service.getIsOpened(ServerType.Tcp));
 
-            async.done();
+            if (httpClosed) async.done();
         });
 
         service.close(ServerType.Http);
@@ -61,23 +98,26 @@ class WebServerServiceTest extends Test
     public function testHandlerHttpRequest(async:Async):Void
     {
         service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.GotRequest, m -> {
-            Assert.isFalse(false);
+        service.startListen({id: "/pizda", type: RequestType.Post});
+        service.addMessageListener(WebServerServiceMessageType.GotRequest, m ->
+        {
+            Assert.isTrue(true);
             async.done();
         });
 
-        Http.request("http://127.0.0.1:3000").end();
+        Http.request({hostname: "localhost", method: Method.Post, port: 3000, path: "/pizda"}).end();
     }
 
     @:timeout(5000)
     public function testHandlerTcpConnect(async:Async):Void
     {
         service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.ClientConnected, m -> {
-            Assert.isFalse(false);
+        service.addMessageListener(WebServerServiceMessageType.ClientConnected, m ->
+        {
+            Assert.isTrue(true);
             async.done();
         });
 
-        Net.connect({port: 3001, host: "127.0.0.1"});
+        Net.connect({port: 3001, host: "127.0.0.1"}).end();
     }
 }

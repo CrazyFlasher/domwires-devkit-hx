@@ -40,6 +40,16 @@ class AbstractService extends AbstractModel implements IService
         trace("Failed to initialize!");
     }
 
+    private function checkEnabled():Bool
+    {
+        if (!_enabled)
+        {
+            trace("Service is disabled!");
+        }
+
+        return _enabled;
+    }
+
     private function get_enabled():Bool
     {
         return _enabled;

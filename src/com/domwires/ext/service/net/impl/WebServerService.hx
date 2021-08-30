@@ -1,5 +1,9 @@
 package com.domwires.ext.service.net.impl;
 
+import js.lib.Error;
+import js.lib.Uint8Array;
+import js.node.buffer.Buffer;
+import js.node.http.ClientRequest;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.node.Http;
@@ -23,6 +27,9 @@ class WebServerService extends AbstractService implements IWebServerService
     private var isOpenedHttp:Bool = false;
     private var isOpenedTcp:Bool = false;
 
+    private var httpReqMap:Map<String, Request> = [];
+    private var tcpReqMap:Map<String, Request> = [];
+
     override private function init():Void
     {
         initResult(__enabled);
@@ -30,7 +37,7 @@ class WebServerService extends AbstractService implements IWebServerService
 
     public function close(?type:ServerType):IWebServerService
     {
-        if (httpServer != null && (type == null || type == ServerType.Http))
+        if (isOpenedHttp && httpServer != null && (type == null || type == ServerType.Http))
         {
             httpServer.close(() ->
             {
@@ -39,7 +46,7 @@ class WebServerService extends AbstractService implements IWebServerService
             });
         }
 
-        if (tcpServer != null && (type == null || type == ServerType.Tcp))
+        if (isOpenedTcp && tcpServer != null && (type == null || type == ServerType.Tcp))
         {
             tcpServer.close(() ->
             {
@@ -68,12 +75,28 @@ class WebServerService extends AbstractService implements IWebServerService
 
     private function createServerHttp():Void
     {
-        httpServer = Http.createServer((request:IncomingMessage, response:ServerResponse) ->
+        httpServer = Http.createServer((message:IncomingMessage, response:ServerResponse) ->
         {
-            response.writeHead(200, {'Content-Type': 'text/plain'});
-            response.end('Echo http');
+//            response.writeHead(200, {'Content-Type': 'text/plain'});
+//            response.end('Echo http');
+            var req:Request = httpReqMap[message.url];
+            if (req != null)
+            {
+                var chunkList:Array<Uint8Array> = [];
+                message.on("data", chunk -> chunkList.push(chunk));
+                message.on("end", () -> {
+                    var data:Buffer = Buffer.concat(chunkList);
+                    trace("Received from client in request: " + data);
 
-            dispatchMessage(WebServerServiceMessageType.GotRequest);
+                    handleRequest(req, message, data);
+
+                    response.writeHead(200, {
+                        "Content-Length": "0",
+                        "Content-Type": "text/plain; charset=utf-8"
+                    });
+                    response.end("");
+                });
+            }
         });
 
         httpServer.listen(_httpPort, "127.0.0.1");
@@ -96,8 +119,41 @@ class WebServerService extends AbstractService implements IWebServerService
         isOpenedTcp = true;
     }
 
-    public function listen(value:Array<Request>):IWebServerService
+    private function handleRequest(request:Request, message:IncomingMessage, data:Buffer):Void
     {
+        dispatchMessage(WebServerServiceMessageType.GotRequest);
+    }
+
+    public function startListen(request:Request):IWebServerService
+    {
+        if(!checkEnabled())
+        {
+            return this;
+        }
+
+        var map:Map<String, Request> = getReqMap(request.type);
+        if (!map.exists(request.id))
+        {
+            map.set(request.id, request);
+        }
+
+        return this;
+    }
+
+    public function stopListen(request:Request):IWebServerService
+    {
+        if(!checkEnabled())
+        {
+            return this;
+        }
+
+        var map:Map<String, Request> = getReqMap(request.type);
+
+        if (map.exists(request.id))
+        {
+            map.remove(request.id);
+        }
+
         return this;
     }
 
@@ -119,5 +175,30 @@ class WebServerService extends AbstractService implements IWebServerService
         }
 
         return isOpenedTcp;
+    }
+
+    private function getReqMap(type:RequestType):Map<String, Request>
+    {
+        if (isHttp(type))
+        {
+            return httpReqMap;
+        }
+
+        return tcpReqMap;
+    }
+
+    private function isHttp(type:RequestType):Bool
+    {
+        return type != RequestType.Tcp;
+    }
+
+    private function isListeningRequest(id:String, type:RequestType):Bool
+    {
+        return getReqById(id, type) != null;
+    }
+
+    private function getReqById(id:String, type:RequestType):Request
+    {
+        return getReqMap(type).get(id);
     }
 }
