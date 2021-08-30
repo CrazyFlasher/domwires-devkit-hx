@@ -59,7 +59,7 @@ class WebServerService extends AbstractService implements IWebServerService
         http.listen(_port, "127.0.0.1");
     }
 
-    public function listen(value:Array<RequestVo>):IWebServerService
+    public function listen(value:Array<Request>):IWebServerService
     {
         return this;
     }
