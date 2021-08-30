@@ -2,6 +2,6 @@ package com.domwires.ext.service.net;
 
 typedef Request =
 {
-    final url:String;
-    final type:EnumValue;
+    final id:String;
+    final type:RequestType;
 }

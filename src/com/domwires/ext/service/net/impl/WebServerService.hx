@@ -1,36 +1,52 @@
 package com.domwires.ext.service.net.impl;
 
-import js.node.http.ServerResponse;
 import js.node.http.IncomingMessage;
-import js.node.http.Server;
+import js.node.http.ServerResponse;
 import js.node.Http;
+import js.node.net.Socket;
+import js.node.Net;
 
 class WebServerService extends AbstractService implements IWebServerService
 {
     @Inject("IWebServerService_enabled") @Optional
     private var __enabled:Bool;
 
-    @Inject("IWebServerService_port")
-    private var _port:Int;
+    @Inject("IWebServerService_httpPort")
+    private var _httpPort:Int;
 
-    public var port(get, never):Int;
-    public var isOpened(get, never):Bool;
+    @Inject("IWebServerService_tcpPort")
+    private var _tcpPort:Int;
 
-    private var http:Server;
-    private var _isOpened:Bool;
+    private var httpServer:js.node.http.Server;
+    private var tcpServer:js.node.net.Server;
+
+    private var isOpenedHttp:Bool = false;
+    private var isOpenedTcp:Bool = false;
 
     override private function init():Void
     {
         initResult(__enabled);
     }
 
-    public function close():IWebServerService
+    public function close(?type:ServerType):IWebServerService
     {
-        if (http != null) http.close(() ->
+        if (httpServer != null && (type == null || type == ServerType.Http))
         {
-            _isOpened = false;
-            dispatchMessage(WebServerServiceMessageType.Closed);
-        });
+            httpServer.close(() ->
+            {
+                isOpenedHttp = false;
+                dispatchMessage(WebServerServiceMessageType.HttpClosed);
+            });
+        }
+
+        if (tcpServer != null && (type == null || type == ServerType.Tcp))
+        {
+            tcpServer.close(() ->
+            {
+                isOpenedTcp = false;
+                dispatchMessage(WebServerServiceMessageType.TcpClosed);
+            });
+        }
 
         return this;
     }
@@ -46,17 +62,38 @@ class WebServerService extends AbstractService implements IWebServerService
     {
         super.initSuccess();
 
-        _isOpened = true;
+        createServerHttp();
+        createServerTcp();
+    }
 
-        http = Http.createServer(function (request:IncomingMessage, response:ServerResponse)
+    private function createServerHttp():Void
+    {
+        httpServer = Http.createServer((request:IncomingMessage, response:ServerResponse) ->
         {
             response.writeHead(200, {'Content-Type': 'text/plain'});
-            response.end('Hello World!');
+            response.end('Echo http');
 
             dispatchMessage(WebServerServiceMessageType.GotRequest);
         });
 
-        http.listen(_port, "127.0.0.1");
+        httpServer.listen(_httpPort, "127.0.0.1");
+
+        isOpenedHttp = true;
+    }
+
+    private function createServerTcp():Void
+    {
+        tcpServer = Net.createServer((socket:Socket) ->
+        {
+            socket.write("Echo socket");
+            socket.pipe(socket);
+
+            dispatchMessage(WebServerServiceMessageType.ClientConnected);
+        });
+
+        tcpServer.listen(_tcpPort, "127.0.0.1");
+
+        isOpenedTcp = true;
     }
 
     public function listen(value:Array<Request>):IWebServerService
@@ -64,13 +101,23 @@ class WebServerService extends AbstractService implements IWebServerService
         return this;
     }
 
-    private function get_port():Int
+    public function getPort(type:ServerType):Int
     {
-        return _port;
+        if (type == ServerType.Http)
+        {
+            return _httpPort;
+        }
+
+        return _tcpPort;
     }
 
-    private function get_isOpened():Bool
+    public function getIsOpened(type:ServerType):Bool
     {
-        return _isOpened;
+        if (type == ServerType.Http)
+        {
+            return isOpenedHttp;
+        }
+
+        return isOpenedTcp;
     }
 }

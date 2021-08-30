@@ -1,8 +1,7 @@
 package com.domwires.ext.service.net;
 
-enum RequestType
+enum ServerType
 {
-    Get;
-    Post;
+    Http;
     Tcp;
 }

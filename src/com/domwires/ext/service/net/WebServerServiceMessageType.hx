@@ -2,6 +2,8 @@ package com.domwires.ext.service.net;
 
 enum WebServerServiceMessageType
 {
-    Closed;
+    HttpClosed;
+    TcpClosed;
+    ClientConnected;
     GotRequest;
 }

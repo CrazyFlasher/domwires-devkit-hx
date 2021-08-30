@@ -1,5 +1,6 @@
 package com.domwires.ext.service.net.impl;
 
+import js.node.Net;
 import utest.Async;
 import utest.Test;
 import utest.Assert;
@@ -27,7 +28,8 @@ class WebServerServiceTest extends Test
     {
         factory = new AppFactory();
         factory.mapToType(IWebServerService, WebServerService);
-        factory.mapClassNameToValue("Int", 3000, "IWebServerService_port");
+        factory.mapClassNameToValue("Int", 3000, "IWebServerService_httpPort");
+        factory.mapClassNameToValue("Int", 3001, "IWebServerService_tcpPort");
     }
 
     public function teardown():Void
@@ -40,15 +42,23 @@ class WebServerServiceTest extends Test
     public function testClose(async:Async):Void
     {
         service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.Closed, m -> {
-            Assert.isFalse(service.isOpened);
+        service.addMessageListener(WebServerServiceMessageType.HttpClosed, m -> {
+            Assert.isFalse(service.getIsOpened(ServerType.Http));
+
+            service.close(ServerType.Tcp);
+        });
+
+        service.addMessageListener(WebServerServiceMessageType.TcpClosed, m -> {
+            Assert.isFalse(service.getIsOpened(ServerType.Tcp));
+
             async.done();
         });
-        service.close();
+
+        service.close(ServerType.Http);
     }
 
     @:timeout(5000)
-    public function testHandlerRequest(async:Async):Void
+    public function testHandlerHttpRequest(async:Async):Void
     {
         service = factory.getInstance(IWebServerService);
         service.addMessageListener(WebServerServiceMessageType.GotRequest, m -> {
@@ -57,5 +67,17 @@ class WebServerServiceTest extends Test
         });
 
         Http.request("http://127.0.0.1:3000").end();
+    }
+
+    @:timeout(5000)
+    public function testHandlerTcpConnect(async:Async):Void
+    {
+        service = factory.getInstance(IWebServerService);
+        service.addMessageListener(WebServerServiceMessageType.ClientConnected, m -> {
+            Assert.isFalse(false);
+            async.done();
+        });
+
+        Net.connect({port: 3001, host: "127.0.0.1"});
     }
 }
