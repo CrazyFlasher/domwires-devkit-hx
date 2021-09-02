@@ -9,5 +9,5 @@ interface IWebServerServiceImmutable extends IServiceIImmutable
     function getIsOpened(type:ServerType):Bool;
     function getQueryParam(id:String):String;
 
-    var requestData(get, never):Bytes;
+    var requestData(get, never):String;
 }

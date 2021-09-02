@@ -119,7 +119,7 @@ class WebServerServiceTest extends Test
         service.startListen({id: "/test", type: RequestType.Post});
         service.addMessageListener(WebServerServiceMessageType.GotRequest, m ->
         {
-            var requestData:String = service.requestData.toString();
+            var requestData:String = service.requestData;
             Assert.equals(data, requestData);
             async.done();
         });
@@ -193,7 +193,7 @@ class WebServerServiceTest extends Test
         Net.connect({port: 3001, host: "127.0.0.1"}).end();
     }
 
-    @:timeout(5000)
+    @:timeout(50000)
     public function testHandlerTcpRequest(async:Async):Void
     {
         service = factory.getInstance(IWebServerService);
@@ -207,14 +207,14 @@ class WebServerServiceTest extends Test
                 jsonString += "{\"firstName\": \"Anton\", \"lastName\": \"Nefjodov\", \"age\": 35},";
             }
             jsonString = jsonString.substring(0, jsonString.length - 1);
-            jsonString = "{\"people\":[" + jsonString + "]}\r\n";
+            jsonString = "{\"people\":[" + jsonString + "]}\n";
 
             client.write(jsonString);
         });
 
         service.addMessageListener(WebServerServiceMessageType.GotRequest, m -> 
         {
-            var requestData:String = service.requestData.toString();
+            var requestData:String = service.requestData;
             Assert.equals("Anton", haxe.Json.parse(requestData).people[0].firstName);
             client.end();
             async.done();

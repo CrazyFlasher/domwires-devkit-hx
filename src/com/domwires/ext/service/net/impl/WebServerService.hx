@@ -1,18 +1,15 @@
 package com.domwires.ext.service.net.impl;
 
 import js.lib.Error;
-import haxe.Json;
-import js.node.url.URLSearchParams;
-import js.node.url.URL;
-import haxe.io.Bytes;
-import js.lib.Uint8Array;
-import js.node.buffer.Buffer;
 import js.node.http.ClientRequest;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.node.Http;
+import js.node.net.Server;
 import js.node.net.Socket;
 import js.node.Net;
+import js.node.url.URL;
+import js.node.url.URLSearchParams;
 
 class WebServerService extends AbstractService implements IWebServerService
 {
@@ -31,8 +28,8 @@ class WebServerService extends AbstractService implements IWebServerService
     @Inject("IWebServerService_tcpHost")
     private var _tcpHost:String;
 
-    public var requestData(get, never):Bytes;
-    private var _requestData:Bytes;
+    public var requestData(get, never):String;
+    private var _requestData:String;
 
     private var queryParams:URLSearchParams;
 
@@ -99,11 +96,11 @@ class WebServerService extends AbstractService implements IWebServerService
             var req:Request = httpReqMap.get(url.pathname);
             if (req != null)
             {
-                var chunkList:Array<Uint8Array> = [];
-                message.on("data", chunk -> chunkList.push(chunk));
+                var data:String = "";
+                message.on("data", (chunk:String) -> data += chunk);
                 message.on("end", () ->
                 {
-                    _requestData = Buffer.concat(chunkList).hxToBytes();
+                    _requestData = data;
 
                     queryParams = url.searchParams;
 
@@ -135,14 +132,14 @@ class WebServerService extends AbstractService implements IWebServerService
 
             var received:MessageBuffer = new MessageBuffer();
 
-            socket.on(SocketEvent.Data, (chunk) ->
+            socket.on(SocketEvent.Data, (chunk:String) ->
             {
                 received.push(chunk);
                 while (!received.isFinished())
                 {
                     var data:String = received.handleData();
 
-                    _requestData = Bytes.ofString(data);
+                    _requestData = data;
                     
                     dispatchMessage(WebServerServiceMessageType.GotRequest);
                 }
@@ -279,7 +276,7 @@ class WebServerService extends AbstractService implements IWebServerService
         return getReqMap(type).get(id);
     }
 
-    private function get_requestData():Bytes
+    private function get_requestData():String
     {
         return _requestData;
     }
@@ -290,7 +287,7 @@ class MessageBuffer
     private var delimiter:String;
     private var buffer:String;
 
-    public function new(delimiter:String = "\r\n")
+    public function new(delimiter:String = "\n")
     {
         this.delimiter = delimiter;
         this.buffer = "";
