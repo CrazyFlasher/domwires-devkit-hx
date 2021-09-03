@@ -53,7 +53,7 @@ class WebServerService extends AbstractService implements IWebServerService
     {
         if (isOpenedHttp && httpServer != null && (type == null || type == ServerType.Http))
         {
-            httpServer.close(() ->
+            httpServer.close((?error:Error) ->
             {
                 isOpenedHttp = false;
                 dispatchMessage(WebServerServiceMessageType.HttpClosed);
@@ -62,7 +62,7 @@ class WebServerService extends AbstractService implements IWebServerService
 
         if (isOpenedTcp && tcpServer != null && (type == null || type == ServerType.Tcp))
         {
-            tcpServer.close((error:Error) ->
+            tcpServer.close((?error:Error) ->
             {
                 isOpenedTcp = false;
                 dispatchMessage(WebServerServiceMessageType.TcpClosed);
