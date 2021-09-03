@@ -11,7 +11,7 @@ import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.IWebServerService;
 import com.domwires.ext.service.net.WebServerServiceMessageType;
-import com.domwires.ext.service.net.impl.WebServerService;
+import com.domwires.ext.service.net.impl.NodeWebServerService;
 import js.node.Http;
 
 class WebServerServiceTest extends Test
@@ -26,7 +26,7 @@ class WebServerServiceTest extends Test
     public function setup():Void
     {
         factory = new AppFactory();
-        factory.mapToType(IWebServerService, WebServerService);
+        factory.mapToType(IWebServerService, NodeWebServerService);
         factory.mapClassNameToValue("String", "127.0.0.1", "IWebServerService_httpHost");
         factory.mapClassNameToValue("String", "127.0.0.1", "IWebServerService_tcpHost");
         factory.mapClassNameToValue("Int", 3000, "IWebServerService_httpPort");
@@ -117,7 +117,7 @@ class WebServerServiceTest extends Test
 
         service = factory.getInstance(IWebServerService);
         service.startListen({id: "/test", type: RequestType.Post});
-        service.addMessageListener(WebServerServiceMessageType.GotRequest, m ->
+        service.addMessageListener(WebServerServiceMessageType.GotHttpRequest, m ->
         {
             var requestData:String = service.requestData;
             Assert.equals(data, requestData);
@@ -146,7 +146,7 @@ class WebServerServiceTest extends Test
 
         service = factory.getInstance(IWebServerService);
         service.startListen({id: "/test", type: RequestType.Get});
-        service.addMessageListener(WebServerServiceMessageType.GotRequest, m ->
+        service.addMessageListener(WebServerServiceMessageType.GotHttpRequest, m ->
         {
             var requestData:String = service.requestData.toString();
             Assert.equals(data, requestData);
@@ -170,7 +170,7 @@ class WebServerServiceTest extends Test
 
         service = factory.getInstance(IWebServerService);
         service.startListen({id: "/test", type: RequestType.Get});
-        service.addMessageListener(WebServerServiceMessageType.GotRequest, m ->
+        service.addMessageListener(WebServerServiceMessageType.GotHttpRequest, m ->
         {
             Assert.equals(service.getQueryParam("param_1"), "preved");
             Assert.equals(service.getQueryParam("param_2"), "boga");
@@ -212,7 +212,7 @@ class WebServerServiceTest extends Test
             client.write(jsonString);
         });
 
-        service.addMessageListener(WebServerServiceMessageType.GotRequest, m -> 
+        service.addMessageListener(WebServerServiceMessageType.GotTcpData, m -> 
         {
             var requestData:String = service.requestData;
             Assert.equals("Anton", haxe.Json.parse(requestData).people[0].firstName);

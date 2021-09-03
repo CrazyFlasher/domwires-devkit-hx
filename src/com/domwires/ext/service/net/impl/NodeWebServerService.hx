@@ -11,7 +11,7 @@ import js.node.Net;
 import js.node.url.URL;
 import js.node.url.URLSearchParams;
 
-class WebServerService extends AbstractService implements IWebServerService
+class NodeWebServerService extends AbstractService implements IWebServerService
 {
     @Inject("IWebServerService_enabled") @Optional
     private var __enabled:Bool;
@@ -104,13 +104,13 @@ class WebServerService extends AbstractService implements IWebServerService
 
                     queryParams = url.searchParams;
 
-                    response.writeHead(200, {
-                        "Content-Length": "0",
-                        "Content-Type": "text/plain; charset=utf-8"
-                    });
-                    response.end();
+                    handleHttpRequest(message);
 
-                    handleGotRequest();
+                    dispatchMessage(WebServerServiceMessageType.GotHttpRequest);
+
+                    sendHttpResponse(response);
+
+                    dispatchMessage(WebServerServiceMessageType.SendHttpResponse);
                 });
             }
         });
@@ -129,6 +129,8 @@ class WebServerService extends AbstractService implements IWebServerService
             trace("Client connected: " + _connectionsCount);
 
             handleClientConnected();
+            
+            dispatchMessage(WebServerServiceMessageType.ClientConnected);
 
             var received:MessageBuffer = new MessageBuffer();
 
@@ -141,7 +143,9 @@ class WebServerService extends AbstractService implements IWebServerService
 
                     _requestData = data;
                     
-                    dispatchMessage(WebServerServiceMessageType.GotRequest);
+                    handleTcpData();
+
+                    dispatchMessage(WebServerServiceMessageType.GotTcpData);
                 }
             });
 
@@ -152,6 +156,8 @@ class WebServerService extends AbstractService implements IWebServerService
                 trace("Client disconnected: " + _connectionsCount);
 
                 handleClientDisconnected();
+
+                dispatchMessage(WebServerServiceMessageType.ClientDisconnected);
             });
 
             socket.on(SocketEvent.Error, (error:Error) -> trace(error));
@@ -168,17 +174,36 @@ class WebServerService extends AbstractService implements IWebServerService
 
     private function handleClientConnected():Void
     {
-        dispatchMessage(WebServerServiceMessageType.ClientConnected);
+        
     }
 
     private function handleClientDisconnected():Void
     {
-        dispatchMessage(WebServerServiceMessageType.ClientDisconnected);
+        
     }
 
-    private function handleGotRequest():Void
+    private function handleHttpRequest(message:IncomingMessage):Void
     {
-        dispatchMessage(WebServerServiceMessageType.GotRequest);
+        
+    }
+
+    private function sendHttpResponse(response:ServerResponse):Void
+    {
+        response.writeHead(200, {
+            "Content-Length": "0",
+            "Content-Type": "text/plain; charset=utf-8"
+        });
+        response.end();
+    }
+
+    private function handleTcpData():Void 
+    {
+        
+    }
+
+    public function sendTcpData(value:Response):Void 
+    {
+
     }
 
     public function startListen(request:Request):IWebServerService

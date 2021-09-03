@@ -6,5 +6,7 @@ enum WebServerServiceMessageType
     TcpClosed;
     ClientConnected;
     ClientDisconnected;
-    GotRequest;
+    GotHttpRequest;
+    SendHttpResponse;
+    GotTcpData;
 }
