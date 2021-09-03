@@ -2,7 +2,7 @@ package com.domwires.ext.service.net;
 
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
-import com.domwires.ext.service.net.impl.NodeNetServerService;
+import com.domwires.ext.service.net.server.impl.NodeNetServerService;
 import com.domwires.ext.service.net.server.INetServerService;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
 import js.node.http.ClientRequest;

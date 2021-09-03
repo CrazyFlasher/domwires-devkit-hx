@@ -1,4 +1,4 @@
-package com.domwires.ext.service.net.impl;
+package com.domwires.ext.service.net.server.impl;
 
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
 import com.domwires.ext.service.net.server.INetServerService;
