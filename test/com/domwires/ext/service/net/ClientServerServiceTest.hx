@@ -1,4 +1,4 @@
-package com.domwires.ext.service.net.impl;
+package com.domwires.ext.service.net;
 
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
@@ -14,7 +14,7 @@ import utest.Assert;
 import utest.Async;
 import utest.Test;
 
-class WebServerServiceTest extends Test
+class ClientServerServiceTest extends Test
 {
     private var factory:IAppFactory;
     private var service:INetServerService;
@@ -202,7 +202,7 @@ class WebServerServiceTest extends Test
         client = Net.connect({port: 3001, host: "127.0.0.1"}, () ->
         {
             var jsonString:String = "";
-            for (i in 0...1000)
+            for (i in 0...100)
             {
                 jsonString += "{\"firstName\": \"Anton\", \"lastName\": \"Nefjodov\", \"age\": 35},";
             }
