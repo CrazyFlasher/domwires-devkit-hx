@@ -2,7 +2,7 @@ package com.domwires.ext.service.net;
 
 import haxe.io.Bytes;
 
-interface IWebServerServiceImmutable extends IServiceIImmutable
+interface INetServerServiceImmutable extends IServiceIImmutable
 {
     function getPort(type:ServerType):Int;
     function getHost(type:ServerType):String;

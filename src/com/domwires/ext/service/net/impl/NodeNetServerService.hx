@@ -11,21 +11,21 @@ import js.node.Net;
 import js.node.url.URL;
 import js.node.url.URLSearchParams;
 
-class NodeWebServerService extends AbstractService implements IWebServerService
+class NodeNetServerService extends AbstractService implements INetServerService
 {
-    @Inject("IWebServerService_enabled") @Optional
+    @Inject("INetServerService_enabled") @Optional
     private var __enabled:Bool;
 
-    @Inject("IWebServerService_httpPort")
+    @Inject("INetServerService_httpPort")
     private var _httpPort:Int;
 
-    @Inject("IWebServerService_tcpPort")
+    @Inject("INetServerService_tcpPort")
     private var _tcpPort:Int;
 
-    @Inject("IWebServerService_httpHost")
+    @Inject("INetServerService_httpHost")
     private var _httpHost:String;
 
-    @Inject("IWebServerService_tcpHost")
+    @Inject("INetServerService_tcpHost")
     private var _tcpHost:String;
 
     public var requestData(get, never):String;
@@ -49,14 +49,14 @@ class NodeWebServerService extends AbstractService implements IWebServerService
         initResult(__enabled);
     }
 
-    public function close(?type:ServerType):IWebServerService
+    public function close(?type:ServerType):INetServerService
     {
         if (isOpenedHttp && httpServer != null && (type == null || type == ServerType.Http))
         {
             httpServer.close((?error:Error) ->
             {
                 isOpenedHttp = false;
-                dispatchMessage(WebServerServiceMessageType.HttpClosed);
+                dispatchMessage(NetServerServiceMessageType.HttpClosed);
             });
         }
 
@@ -65,7 +65,7 @@ class NodeWebServerService extends AbstractService implements IWebServerService
             tcpServer.close((?error:Error) ->
             {
                 isOpenedTcp = false;
-                dispatchMessage(WebServerServiceMessageType.TcpClosed);
+                dispatchMessage(NetServerServiceMessageType.TcpClosed);
             });
         }
 
@@ -106,11 +106,11 @@ class NodeWebServerService extends AbstractService implements IWebServerService
 
                     handleHttpRequest(message);
 
-                    dispatchMessage(WebServerServiceMessageType.GotHttpRequest);
+                    dispatchMessage(NetServerServiceMessageType.GotHttpRequest);
 
                     sendHttpResponse(response);
 
-                    dispatchMessage(WebServerServiceMessageType.SendHttpResponse);
+                    dispatchMessage(NetServerServiceMessageType.SendHttpResponse);
                 });
             }
         });
@@ -130,7 +130,7 @@ class NodeWebServerService extends AbstractService implements IWebServerService
 
             handleClientConnected();
             
-            dispatchMessage(WebServerServiceMessageType.ClientConnected);
+            dispatchMessage(NetServerServiceMessageType.ClientConnected);
 
             var received:MessageBuffer = new MessageBuffer();
 
@@ -145,7 +145,7 @@ class NodeWebServerService extends AbstractService implements IWebServerService
                     
                     handleTcpData();
 
-                    dispatchMessage(WebServerServiceMessageType.GotTcpData);
+                    dispatchMessage(NetServerServiceMessageType.GotTcpData);
                 }
             });
 
@@ -157,7 +157,7 @@ class NodeWebServerService extends AbstractService implements IWebServerService
 
                 handleClientDisconnected();
 
-                dispatchMessage(WebServerServiceMessageType.ClientDisconnected);
+                dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
             });
 
             socket.on(SocketEvent.Error, (error:Error) -> trace(error));
@@ -206,7 +206,7 @@ class NodeWebServerService extends AbstractService implements IWebServerService
 
     }
 
-    public function startListen(request:Request):IWebServerService
+    public function startListen(request:Request):INetServerService
     {
         if (!checkEnabled())
         {
@@ -222,7 +222,7 @@ class NodeWebServerService extends AbstractService implements IWebServerService
         return this;
     }
 
-    public function stopListen(request:Request):IWebServerService
+    public function stopListen(request:Request):INetServerService
     {
         if (!checkEnabled())
         {

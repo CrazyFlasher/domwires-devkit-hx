@@ -9,15 +9,15 @@ import utest.Test;
 import utest.Assert;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
-import com.domwires.ext.service.net.IWebServerService;
-import com.domwires.ext.service.net.WebServerServiceMessageType;
-import com.domwires.ext.service.net.impl.NodeWebServerService;
+import com.domwires.ext.service.net.INetServerService;
+import com.domwires.ext.service.net.NetServerServiceMessageType;
+import com.domwires.ext.service.net.impl.NodeNetServerService;
 import js.node.Http;
 
 class WebServerServiceTest extends Test
 {
     private var factory:IAppFactory;
-    private var service:IWebServerService;
+    private var service:INetServerService;
 
     public function setupClass():Void {}
 
@@ -26,11 +26,11 @@ class WebServerServiceTest extends Test
     public function setup():Void
     {
         factory = new AppFactory();
-        factory.mapToType(IWebServerService, NodeWebServerService);
-        factory.mapClassNameToValue("String", "127.0.0.1", "IWebServerService_httpHost");
-        factory.mapClassNameToValue("String", "127.0.0.1", "IWebServerService_tcpHost");
-        factory.mapClassNameToValue("Int", 3000, "IWebServerService_httpPort");
-        factory.mapClassNameToValue("Int", 3001, "IWebServerService_tcpPort");
+        factory.mapToType(INetServerService, NodeNetServerService);
+        factory.mapClassNameToValue("String", "127.0.0.1", "INetServerService_httpHost");
+        factory.mapClassNameToValue("String", "127.0.0.1", "INetServerService_tcpHost");
+        factory.mapClassNameToValue("Int", 3000, "INetServerService_httpPort");
+        factory.mapClassNameToValue("Int", 3001, "INetServerService_tcpPort");
     }
 
     @:timeout(5000)
@@ -45,7 +45,7 @@ class WebServerServiceTest extends Test
             async.done();
         };
 
-        service.addMessageListener(WebServerServiceMessageType.TcpClosed, m ->
+        service.addMessageListener(NetServerServiceMessageType.TcpClosed, m ->
         {
             tcpClosed = true;
 
@@ -55,7 +55,7 @@ class WebServerServiceTest extends Test
             }
         });
 
-        service.addMessageListener(WebServerServiceMessageType.HttpClosed, m ->
+        service.addMessageListener(NetServerServiceMessageType.HttpClosed, m ->
         {
             httpClosed = true;
 
@@ -74,8 +74,8 @@ class WebServerServiceTest extends Test
         var httpClosed:Bool = false;
         var tcpClosed:Bool = false;
 
-        service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.HttpClosed, m ->
+        service = factory.getInstance(INetServerService);
+        service.addMessageListener(NetServerServiceMessageType.HttpClosed, m ->
         {
             httpClosed = true;
 
@@ -87,7 +87,7 @@ class WebServerServiceTest extends Test
                 async.done();
         });
 
-        service.addMessageListener(WebServerServiceMessageType.TcpClosed, m ->
+        service.addMessageListener(NetServerServiceMessageType.TcpClosed, m ->
         {
             tcpClosed = true;
 
@@ -115,9 +115,9 @@ class WebServerServiceTest extends Test
             }
         };
 
-        service = factory.getInstance(IWebServerService);
+        service = factory.getInstance(INetServerService);
         service.startListen({id: "/test", type: RequestType.Post});
-        service.addMessageListener(WebServerServiceMessageType.GotHttpRequest, m ->
+        service.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
         {
             var requestData:String = service.requestData;
             Assert.equals(data, requestData);
@@ -144,9 +144,9 @@ class WebServerServiceTest extends Test
             }
         };
 
-        service = factory.getInstance(IWebServerService);
+        service = factory.getInstance(INetServerService);
         service.startListen({id: "/test", type: RequestType.Get});
-        service.addMessageListener(WebServerServiceMessageType.GotHttpRequest, m ->
+        service.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
         {
             var requestData:String = service.requestData.toString();
             Assert.equals(data, requestData);
@@ -168,9 +168,9 @@ class WebServerServiceTest extends Test
             path: "/test?param_1=preved&param_2=boga"
         };
 
-        service = factory.getInstance(IWebServerService);
+        service = factory.getInstance(INetServerService);
         service.startListen({id: "/test", type: RequestType.Get});
-        service.addMessageListener(WebServerServiceMessageType.GotHttpRequest, m ->
+        service.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
         {
             Assert.equals(service.getQueryParam("param_1"), "preved");
             Assert.equals(service.getQueryParam("param_2"), "boga");
@@ -183,8 +183,8 @@ class WebServerServiceTest extends Test
     @:timeout(5000)
     public function testHandlerTcpConnect(async:Async):Void
     {
-        service = factory.getInstance(IWebServerService);
-        service.addMessageListener(WebServerServiceMessageType.ClientConnected, m ->
+        service = factory.getInstance(INetServerService);
+        service.addMessageListener(NetServerServiceMessageType.ClientConnected, m ->
         {
             Assert.isTrue(true);
             async.done();
@@ -196,7 +196,7 @@ class WebServerServiceTest extends Test
     @:timeout(50000)
     public function testHandlerTcpRequest(async:Async):Void
     {
-        service = factory.getInstance(IWebServerService);
+        service = factory.getInstance(INetServerService);
 
         var client:Socket = null;
         client = Net.connect({port: 3001, host: "127.0.0.1"}, () ->
@@ -212,7 +212,7 @@ class WebServerServiceTest extends Test
             client.write(jsonString);
         });
 
-        service.addMessageListener(WebServerServiceMessageType.GotTcpData, m -> 
+        service.addMessageListener(NetServerServiceMessageType.GotTcpData, m ->
         {
             var requestData:String = service.requestData;
             Assert.equals("Anton", haxe.Json.parse(requestData).people[0].firstName);

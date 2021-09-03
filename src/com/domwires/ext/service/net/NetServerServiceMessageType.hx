@@ -1,6 +1,6 @@
 package com.domwires.ext.service.net;
 
-enum WebServerServiceMessageType
+enum NetServerServiceMessageType
 {
     HttpClosed;
     TcpClosed;
