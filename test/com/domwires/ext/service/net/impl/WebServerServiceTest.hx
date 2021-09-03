@@ -1,18 +1,18 @@
 package com.domwires.ext.service.net.impl;
 
-import js.node.net.Socket;
-import js.node.http.ClientRequest;
-import js.node.http.Method;
-import js.node.Net;
-import utest.Async;
-import utest.Test;
-import utest.Assert;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
-import com.domwires.ext.service.net.INetServerService;
-import com.domwires.ext.service.net.NetServerServiceMessageType;
 import com.domwires.ext.service.net.impl.NodeNetServerService;
+import com.domwires.ext.service.net.server.INetServerService;
+import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import js.node.http.ClientRequest;
+import js.node.http.Method;
 import js.node.Http;
+import js.node.net.Socket;
+import js.node.Net;
+import utest.Assert;
+import utest.Async;
+import utest.Test;
 
 class WebServerServiceTest extends Test
 {

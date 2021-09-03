@@ -1,4 +1,4 @@
-package com.domwires.ext.service.net;
+package com.domwires.ext.service.net.server;
 
 interface INetServerService extends INetServerServiceImmutable extends IService
 {

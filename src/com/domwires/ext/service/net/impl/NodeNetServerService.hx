@@ -1,5 +1,7 @@
 package com.domwires.ext.service.net.impl;
 
+import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import com.domwires.ext.service.net.server.INetServerService;
 import js.lib.Error;
 import js.node.http.ClientRequest;
 import js.node.http.IncomingMessage;
