@@ -6,8 +6,9 @@ interface INetServerServiceImmutable extends IServiceIImmutable
 {
     function getPort(type:ServerType):Int;
     function getHost(type:ServerType):String;
-    function getIsOpened(type:ServerType):Bool;
+    function isOpened(type:ServerType):Bool;
     function getQueryParam(id:String):String;
 
     var requestData(get, never):String;
+    var connectionsCount(get, never):Int;
 }

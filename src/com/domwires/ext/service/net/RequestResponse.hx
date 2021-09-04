@@ -1,7 +1,8 @@
 package com.domwires.ext.service.net;
 
-typedef Request =
+typedef RequestResponse =
 {
     final id:String;
     final type:RequestType;
+    final ?data:String;
 }

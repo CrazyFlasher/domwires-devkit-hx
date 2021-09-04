@@ -5,6 +5,8 @@ class Test
 {
     public static function main()
     {
+        //js.Lib.require('source-map-support').install();
+
         var runner:Runner = new Runner();
 
         // runner.addCases("com.domwires.ext");
