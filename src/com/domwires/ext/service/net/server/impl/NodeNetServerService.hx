@@ -51,6 +51,8 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     private var clientIdMap:Map<Int, SocketClient> = [];
 
+    private var nextClientId:Int = 1;
+
     override private function init():Void
     {
         initResult(__enabled);
@@ -132,7 +134,10 @@ class NodeNetServerService extends AbstractService implements INetServerService
             }
         });
 
-        httpServer.listen(_httpPort, _httpHost);
+        httpServer.listen(_httpPort, _httpHost, () ->
+        {
+            trace("HTTP server created: " + _httpHost + ":" + _httpPort);
+        });
 
         isOpenedHttp = true;
     }
@@ -141,19 +146,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
     {
         tcpServer = Net.createServer((socket:Socket) ->
         {
-            _connectionsCount++;
-
-            if (clientIdMap.exists(_connectionsCount))
-            {
-                throw haxe.io.Error.Custom("Client with id " + _connectionsCount + " already exists!");
-            }
-
-            untyped socket.id = _connectionsCount;
-            clientIdMap.set(_connectionsCount, new SocketClient(_connectionsCount, socket));
-
-            trace("Client connected: " + _connectionsCount);
-
-            handleClientConnected(_connectionsCount);
+            handleClientConnected(socket);
             
             dispatchMessage(NetServerServiceMessageType.ClientConnected);
 
@@ -161,55 +154,71 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
             socket.on(SocketEvent.Data, (chunk:String) ->
             {
+                trace("chunk " + chunk);
+
                 received.push(chunk);
                 while (!received.isFinished())
                 {
                     var data:String = received.handleData();
                     _requestData = null;
 
-                    var reqData:RequestResponse = validateRequest(data);
+                    trace("HUJ " + data);
 
-                    var req:RequestResponse = tcpReqMap.get(reqData.id);
-                    if (req != null)
+                    var reqData:RequestResponse = validateRequest(socket, data);
+
+                    if (reqData != null)
                     {
-                        _requestData = {id: reqData.id, data: reqData.data};
+                        var req:RequestResponse = tcpReqMap.get(reqData.id);
+                        if (req != null)
+                        {
+                            _requestData = {id: reqData.id, data: reqData.data};
 
-                        handleTcpRequest(socket);
+                            handleTcpRequest(socket);
 
-                        dispatchMessage(NetServerServiceMessageType.GotTcpRequest);
+                            dispatchMessage(NetServerServiceMessageType.GotTcpRequest);
+                        }
                     }
                 }
             });
 
             socket.on(SocketEvent.End, () ->
             {
-                _connectionsCount--;
-
-                var clientId:Int = untyped socket.id;
-                if (!clientIdMap.exists(clientId))
-                {
-                    throw haxe.io.Error.Custom("Client with id " + clientId + " doesn't exist!");
-                }
-
-                clientIdMap.remove(clientId);
-
-                trace("Client disconnected: " + clientId);
-
-                handleClientDisconnected(clientId);
+                handleClientDisconnected(socket);
 
                 dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
             });
 
-            socket.on(SocketEvent.Error, (error:Error) -> trace(error));
+            socket.on(SocketEvent.Error, (error:Error) ->
+            {
+                trace(error);
+
+                handleSocketConnectionLost(socket);
+
+                dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
+            });
         });
 
-        tcpServer.on(SocketEvent.Error, (error:Error) -> trace(error));
-        tcpServer.listen(_tcpPort, _tcpHost);
+        tcpServer.on(SocketEvent.Error, (error:Error) ->
+        {
+            trace(error);
+        });
+
+        tcpServer.listen(_tcpPort, _tcpHost, () ->
+        {
+            trace("TCP server created: " + _tcpHost + ":" + _tcpPort);
+        });
 
         isOpenedTcp = true;
     }
 
-    private function validateRequest(data:String):RequestResponse
+    private function handleSocketConnectionLost(socket:Socket):Void
+    {
+
+
+        dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
+    }
+
+    private function validateRequest(socket:Socket, data:String):RequestResponse
     {
         var reqData:RequestResponse;
 
@@ -218,25 +227,49 @@ class NodeNetServerService extends AbstractService implements INetServerService
             reqData = Json.parse(data);
         } catch (e:Error)
         {
-            throw haxe.io.Error.Custom("Request should be a JSON string: " + data);
+            clientError("Request should be a JSON string: " + data, socket);
+
+            return null;
         }
 
         if (reqData.id == null)
         {
-            throw haxe.io.Error.Custom("Request Json should contain \"id\" field!: " + data);
+            clientError("Request Json should contain \"id\" field!: " + data, socket);
+
+            return null;
         }
 
         return reqData;
     }
 
-    private function handleClientConnected(clientId:Int):Void
+    private function handleClientConnected(socket:Socket):Void
     {
-        
+        _connectionsCount++;
+
+        var clientId:Int = nextClientId;
+        nextClientId++;
+
+        untyped socket.id = clientId;
+
+        clientIdMap.set(clientId, new SocketClient(clientId, socket));
+
+        trace("Client connected: " + clientId + "; Total clients: " + _connectionsCount);
     }
 
-    private function handleClientDisconnected(clientId:Int):Void
+    private function handleClientDisconnected(socket:Socket):Void
     {
-        
+        _connectionsCount--;
+
+        var clientId:Int = untyped socket.id;
+        if (!clientIdMap.exists(clientId))
+        {
+            throw haxe.io.Error.Custom("Client with id " + clientId + " doesn't exist!");
+        }
+
+        clientIdMap.remove(clientId);
+        socket.destroy();
+
+        trace("Client disconnected: " + clientId + "; Total clients: " + _connectionsCount);
     }
 
     private function handleHttpRequest(message:IncomingMessage):Void
@@ -261,7 +294,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
     {
         if (!clientIdMap.exists(clientId))
         {
-            throw haxe.io.Error.Custom("Client with id " + _connectionsCount + " doesn't exist!");
+            throw haxe.io.Error.Custom("Client with id " + clientId + " doesn't exist!");
         }
 
         clientIdMap.get(clientId).socket.write(Json.stringify(response) + "\n");
@@ -372,6 +405,16 @@ class NodeNetServerService extends AbstractService implements INetServerService
     private function get_connectionsCount():Int
     {
         return _connectionsCount;
+    }
+
+    private function clientError(message:String, ?socket:Socket):Void
+    {
+        trace("Client Error: " + message);
+
+        if (socket != null)
+        {
+            socket.end();
+        }
     }
 }
 

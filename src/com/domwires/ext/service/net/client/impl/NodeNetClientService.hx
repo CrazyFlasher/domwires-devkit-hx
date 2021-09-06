@@ -168,9 +168,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
             });
             message.on("end", () ->
             {
-                var resData:RequestResponse = validateResponse(data);
-
-                _responseData = {id: resData.id, data: resData.data};
+                _responseData = {id: message.url, data: data};
 
                 handleHttpResponse(message);
 
@@ -194,13 +192,17 @@ class NodeNetClientService extends AbstractService implements INetClientService
 
         if (request.data == null)
         {
-            message = "{\"id\":\"" + request.id + "\"}\n";
+            message = "{\"id\":\"" + request.id + "\"}";
         } else
         {
-            message = "{\"id\":\"" + request.id + "\",\"data\":" + request.data + "}\n";
+            var json:Dynamic = {
+                id: request.id,
+                data: request.data
+            };
+            message = Json.stringify(json);
         }
 
-        client.write(message);
+        client.write(message + "\n");
 
         return this;
     }

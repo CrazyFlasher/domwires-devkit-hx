@@ -1,6 +1,5 @@
 package com.domwires.ext.service.net;
 
-import js.node.net.Server;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.client.impl.NodeNetClientService;
@@ -9,8 +8,8 @@ import com.domwires.ext.service.net.client.NetClientServiceMessageType;
 import com.domwires.ext.service.net.server.impl.NodeNetServerService;
 import com.domwires.ext.service.net.server.INetServerService;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
-import haxe.Json;
 import js.node.http.ServerResponse;
+import js.node.net.Socket;
 import utest.Assert;
 import utest.Async;
 import utest.Test;
@@ -117,7 +116,7 @@ class ClientServerServiceTest extends Test
     {
         var request:RequestResponse = {
             id: "test",
-            data: "{\"data\":\"Dummy request\"}"
+            data: "Dummy request"
         };
 
         server = factory.getInstance(INetServerService);
@@ -235,15 +234,17 @@ class ClientServerServiceTest extends Test
 
         client.addMessageListener(NetClientServiceMessageType.Connected, m ->
         {
-            var jsonString:String = "";
-            for (i in 0...100)
+            var json:Dynamic = {people: []};
+            for (i in 0...1)
             {
-                jsonString += "{\"firstName\": \"Anton\", \"lastName\": \"Nefjodov\", \"age\": 35},";
+                json.people.push({
+                    firstName: "Anton",
+                    lastName: "Nefjodov",
+                    age: 35
+                });
             }
-            jsonString = jsonString.substring(0, jsonString.length - 1);
-            jsonString = "{\"people\":[" + jsonString + "]}";
 
-            client.send({id: "test", data: jsonString}, RequestType.Tcp);
+            client.send({id: "test", data: json}, RequestType.Tcp);
         });
 
         client.addMessageListener(NetClientServiceMessageType.TcpResponse, m ->
@@ -284,8 +285,7 @@ class DummyServer extends NodeNetServerService
                 "Content-Type": "text/plain; charset=utf-8"
             });
 
-            var data:RequestResponse = {id: requestData.id, data: "Success"};
-            response.write(Json.stringify(data));
+            response.write("Success");
         } else
         {
             response.writeHead(404);
@@ -294,11 +294,11 @@ class DummyServer extends NodeNetServerService
         response.end();
     }
 
-    override private function handleClientConnected(clientId:Int):Void
+    override private function handleClientConnected(socket:Socket):Void
     {
-        super.handleClientConnected(clientId);
+        super.handleClientConnected(socket);
 
-        testClientId = clientId;
+        testClientId = untyped socket.id;
     }
 
     public function getClientId():Int
