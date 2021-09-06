@@ -1,5 +1,6 @@
 package com.domwires.ext.service.net.server.impl;
 
+import haxe.Json;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
 import com.domwires.ext.service.net.server.INetServerService;
 import js.lib.Error;
@@ -31,8 +32,8 @@ class NodeNetServerService extends AbstractService implements INetServerService
     @Inject("INetServerService_tcpHost")
     private var _tcpHost:String;
 
-    public var requestData(get, never):String;
-    private var _requestData:String;
+    public var requestData(get, never):RequestResponse;
+    private var _requestData:RequestResponse;
 
     private var queryParams:URLSearchParams;
 
@@ -47,6 +48,8 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     public var connectionsCount(get, never):Int;
     private var _connectionsCount:Int = 0;
+
+    private var clientIdMap:Map<Int, SocketClient> = [];
 
     override private function init():Void
     {
@@ -110,15 +113,15 @@ class NodeNetServerService extends AbstractService implements INetServerService
                 message.on("data", (chunk:String) -> data += chunk);
                 message.on("end", () ->
                 {
-                    _requestData = data;
+                    _requestData = {id: requestUrl.pathname, data: data};
 
                     queryParams = requestUrl.searchParams;
 
-                    handleHttpRequest(requestUrl, message);
+                    handleHttpRequest(message);
 
                     dispatchMessage(NetServerServiceMessageType.GotHttpRequest);
 
-                    sendHttpResponse(requestUrl, response);
+                    sendHttpResponse(response);
 
                     dispatchMessage(NetServerServiceMessageType.SendHttpResponse);
                 });
@@ -140,9 +143,17 @@ class NodeNetServerService extends AbstractService implements INetServerService
         {
             _connectionsCount++;
 
+            if (clientIdMap.exists(_connectionsCount))
+            {
+                throw haxe.io.Error.Custom("Client with id " + _connectionsCount + " already exists!");
+            }
+
+            untyped socket.id = _connectionsCount;
+            clientIdMap.set(_connectionsCount, new SocketClient(_connectionsCount, socket));
+
             trace("Client connected: " + _connectionsCount);
 
-            handleClientConnected();
+            handleClientConnected(_connectionsCount);
             
             dispatchMessage(NetServerServiceMessageType.ClientConnected);
 
@@ -154,12 +165,19 @@ class NodeNetServerService extends AbstractService implements INetServerService
                 while (!received.isFinished())
                 {
                     var data:String = received.handleData();
+                    _requestData = null;
 
-                    _requestData = data;
-                    
-                    handleTcpData();
+                    var reqData:RequestResponse = validateRequest(data);
 
-                    dispatchMessage(NetServerServiceMessageType.GotTcpData);
+                    var req:RequestResponse = tcpReqMap.get(reqData.id);
+                    if (req != null)
+                    {
+                        _requestData = {id: reqData.id, data: reqData.data};
+
+                        handleTcpRequest(socket);
+
+                        dispatchMessage(NetServerServiceMessageType.GotTcpRequest);
+                    }
                 }
             });
 
@@ -167,9 +185,17 @@ class NodeNetServerService extends AbstractService implements INetServerService
             {
                 _connectionsCount--;
 
-                trace("Client disconnected: " + _connectionsCount);
+                var clientId:Int = untyped socket.id;
+                if (!clientIdMap.exists(clientId))
+                {
+                    throw haxe.io.Error.Custom("Client with id " + clientId + " doesn't exist!");
+                }
 
-                handleClientDisconnected();
+                clientIdMap.remove(clientId);
+
+                trace("Client disconnected: " + clientId);
+
+                handleClientDisconnected(clientId);
 
                 dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
             });
@@ -183,22 +209,42 @@ class NodeNetServerService extends AbstractService implements INetServerService
         isOpenedTcp = true;
     }
 
-    private function handleClientConnected():Void
+    private function validateRequest(data:String):RequestResponse
+    {
+        var reqData:RequestResponse;
+
+        try
+        {
+            reqData = Json.parse(data);
+        } catch (e:Error)
+        {
+            throw haxe.io.Error.Custom("Request should be a JSON string: " + data);
+        }
+
+        if (reqData.id == null)
+        {
+            throw haxe.io.Error.Custom("Request Json should contain \"id\" field!: " + data);
+        }
+
+        return reqData;
+    }
+
+    private function handleClientConnected(clientId:Int):Void
     {
         
     }
 
-    private function handleClientDisconnected():Void
+    private function handleClientDisconnected(clientId:Int):Void
     {
         
     }
 
-    private function handleHttpRequest(requestUrl:URL, message:IncomingMessage):Void
+    private function handleHttpRequest(message:IncomingMessage):Void
     {
         
     }
 
-    private function sendHttpResponse(requestUrl:URL, response:ServerResponse):Void
+    private function sendHttpResponse(response:ServerResponse):Void
     {
         response.writeHead(200, {
             "Content-Length": "0",
@@ -207,24 +253,30 @@ class NodeNetServerService extends AbstractService implements INetServerService
         response.end();
     }
 
-    private function handleTcpData():Void 
+    private function handleTcpRequest(socket:Socket):Void
     {
-        
     }
 
-    public function sendTcpData(value:RequestResponse):INetServerService 
+    public function sendTcpResponse(clientId:Int, response:RequestResponse):INetServerService
     {
+        if (!clientIdMap.exists(clientId))
+        {
+            throw haxe.io.Error.Custom("Client with id " + _connectionsCount + " doesn't exist!");
+        }
+
+        clientIdMap.get(clientId).socket.write(Json.stringify(response) + "\n");
+
         return this;
     }
 
-    public function startListen(request:RequestResponse):INetServerService
+    public function startListen(request:RequestResponse, type:RequestType):INetServerService
     {
         if (!checkEnabled())
         {
             return this;
         }
 
-        var map:Map<String, RequestResponse> = getReqMap(request.type);
+        var map:Map<String, RequestResponse> = getReqMap(type);
         if (!map.exists(request.id))
         {
             map.set(request.id, request);
@@ -233,14 +285,14 @@ class NodeNetServerService extends AbstractService implements INetServerService
         return this;
     }
 
-    public function stopListen(request:RequestResponse):INetServerService
+    public function stopListen(request:RequestResponse, type:RequestType):INetServerService
     {
         if (!checkEnabled())
         {
             return this;
         }
 
-        var map:Map<String, RequestResponse> = getReqMap(request.type);
+        var map:Map<String, RequestResponse> = getReqMap(type);
 
         if (map.exists(request.id))
         {
@@ -312,7 +364,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
         return getReqMap(type).get(id);
     }
 
-    private function get_requestData():String
+    private function get_requestData():RequestResponse
     {
         return _requestData;
     }
@@ -323,47 +375,28 @@ class NodeNetServerService extends AbstractService implements INetServerService
     }
 }
 
-class MessageBuffer
+class SocketClient
 {
-    private var delimiter:String;
-    private var buffer:String;
+    public var socket(get, never):Socket;
+    private var _socket:Socket;
 
-    public function new(delimiter:String = "\n")
+    public var id(get, never):Int;
+    private var _id:Int;
+
+    public function new(id:Int, socket:Socket) 
     {
-        this.delimiter = delimiter;
-        this.buffer = "";
+
+        _socket = socket;
+        _id = id;
     }
 
-    public function isFinished():Bool
+    private function get_socket():Socket 
     {
-        if (buffer.length == 0 || buffer.indexOf(delimiter) == -1)
-        {
-            return true;
-        }
-        return false;
+        return _socket;
     }
 
-    public function push(data:String)
+    private function get_id():Int 
     {
-        buffer += data;
-    }
-
-    public function getMessage():String
-    {
-        final delimiterIndex = buffer.indexOf(delimiter);
-
-        if (delimiterIndex != -1)
-        {
-            final message = buffer.substring(0, delimiterIndex);
-            buffer = StringTools.replace(buffer, message + delimiter, "");
-
-            return message;
-        }
-        return null;
-    }
-
-    public function handleData():String
-    {
-        return getMessage();
+        return _id;
     }
 }

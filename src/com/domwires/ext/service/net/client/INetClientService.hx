@@ -4,5 +4,5 @@ interface INetClientService extends INetClientServiceImmutable extends IService
 {
     function connect():INetClientService;
     function disconnect():INetClientService;
-    function send(request:RequestResponse):INetClientService;
+    function send(request:RequestResponse, type:RequestType):INetClientService;
 }

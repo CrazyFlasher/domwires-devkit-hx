@@ -5,5 +5,5 @@ enum NetClientServiceMessageType
     Connected;
     Disconnected;
     HttpResponse;
-    TcpData;
+    TcpResponse;
 }

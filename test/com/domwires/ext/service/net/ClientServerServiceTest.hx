@@ -1,7 +1,6 @@
 package com.domwires.ext.service.net;
 
-import js.node.Net;
-import js.node.net.Socket;
+import js.node.net.Server;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.client.impl.NodeNetClientService;
@@ -10,8 +9,8 @@ import com.domwires.ext.service.net.client.NetClientServiceMessageType;
 import com.domwires.ext.service.net.server.impl.NodeNetServerService;
 import com.domwires.ext.service.net.server.INetServerService;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import haxe.Json;
 import js.node.http.ServerResponse;
-import js.node.url.URL;
 import utest.Assert;
 import utest.Async;
 import utest.Test;
@@ -118,25 +117,24 @@ class ClientServerServiceTest extends Test
     {
         var request:RequestResponse = {
             id: "test",
-            data: "Dummy request",
-            type: RequestType.Post
+            data: "{\"data\":\"Dummy request\"}"
         };
 
         server = factory.getInstance(INetServerService);
-        server.startListen({id: "/test", type: RequestType.Post});
+        server.startListen({id: "/test"}, RequestType.Post);
         server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
         {
-            Assert.equals(request.data, server.requestData);
+            Assert.equals(request.data, server.requestData.data);
         });
 
         client = factory.getInstance(INetClientService);
         client.addMessageListener(NetClientServiceMessageType.HttpResponse, m -> 
         {
-            Assert.equals("Success", client.responseData);
+            Assert.equals("Success", client.responseData.data);
             async.done();
         });
 
-        client.send(request);
+        client.send(request, RequestType.Post);
     }
 
     @:timeout(1000)
@@ -144,37 +142,35 @@ class ClientServerServiceTest extends Test
     {
         var request:RequestResponse = {
             id: "test",
-            data: "Dummy request",
-            type: RequestType.Get
+            data: "{\"data\":\"Dummy request\"}"
         };
 
         server = factory.getInstance(INetServerService);
-        server.startListen({id: "/test", type: RequestType.Get});
+        server.startListen({id: "/test"}, RequestType.Get);
         server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
         {
-            Assert.equals(request.data, server.requestData);
+            Assert.equals(request.data, server.requestData.data);
         });
 
         client = factory.getInstance(INetClientService);
         client.addMessageListener(NetClientServiceMessageType.HttpResponse, m ->
         {
-            Assert.equals("Success", client.responseData);
+            Assert.equals("Success", client.responseData.data);
             async.done();
         });
 
-        client.send(request);
+        client.send(request, RequestType.Get);
     }
 
     @:timeout(1000)
     public function testHandlerHttpGetWithQueryParams(async:Async):Void
     {
         var request:RequestResponse = {
-            id: "test?param_1=preved&param_2=boga",
-            type: RequestType.Get
+            id: "test?param_1=preved&param_2=boga"
         };
 
         server = factory.getInstance(INetServerService);
-        server.startListen({id: "/test", type: RequestType.Get});
+        server.startListen({id: "/test"}, RequestType.Get);
         server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
         {
             Assert.equals(server.getQueryParam("param_1"), "preved");
@@ -184,11 +180,11 @@ class ClientServerServiceTest extends Test
         client = factory.getInstance(INetClientService);
         client.addMessageListener(NetClientServiceMessageType.HttpResponse, m ->
         {
-            Assert.equals("Success", client.responseData);
+            Assert.equals("Success", client.responseData.data);
             async.done();
         });
 
-        client.send(request);
+        client.send(request, RequestType.Get);
     }
 
     @:timeout(1000)
@@ -231,8 +227,8 @@ class ClientServerServiceTest extends Test
         client.connect();
     }
 
-    @:timeout(1000)
-    public function testHandlerTcpRequest(async:Async):Void
+    @:timeout(10000)
+    public function testHandlerTcpRequestResponse(async:Async):Void
     {
         server = factory.getInstance(INetServerService);
         client = factory.getInstance(INetClientService);
@@ -245,19 +241,28 @@ class ClientServerServiceTest extends Test
                 jsonString += "{\"firstName\": \"Anton\", \"lastName\": \"Nefjodov\", \"age\": 35},";
             }
             jsonString = jsonString.substring(0, jsonString.length - 1);
-            jsonString = "{\"people\":[" + jsonString + "]}\n";
+            jsonString = "{\"people\":[" + jsonString + "]}";
 
-            client.send({type: RequestType.Tcp, id: "test", data: jsonString});
+            client.send({id: "test", data: jsonString}, RequestType.Tcp);
         });
 
-        server.addMessageListener(NetServerServiceMessageType.GotTcpData, m ->
+        client.addMessageListener(NetClientServiceMessageType.TcpResponse, m ->
         {
-            var requestData:String = server.requestData;
-            Assert.equals("Anton", haxe.Json.parse(requestData).people[0].firstName);
+            Assert.equals("test", client.responseData.id);
+            Assert.equals("Preved", client.responseData.data);
+
             client.disconnect();
             async.done();
         });
 
+        server.addMessageListener(NetServerServiceMessageType.GotTcpRequest, m ->
+        {
+            Assert.equals("Anton", server.requestData.data.people[0].firstName);
+
+            server.sendTcpResponse(cast (server, DummyServer).getClientId(), {id: "test", data: "Preved"});
+        });
+
+        server.startListen({id: "test"}, RequestType.Tcp);
         client.connect();
     }
 }
@@ -269,19 +274,35 @@ class DummyClient extends NodeNetClientService
 
 class DummyServer extends NodeNetServerService
 {
-    override private function sendHttpResponse(requestUrl:URL, response:ServerResponse):Void
+    private var testClientId:Int;
+
+    override private function sendHttpResponse(response:ServerResponse):Void
     {
-        if (requestUrl.pathname == "/test")
+        if (requestData.id == "/test")
         {
             response.writeHead(200, {
                 "Content-Type": "text/plain; charset=utf-8"
             });
-            response.write("Success");
+
+            var data:RequestResponse = {id: requestData.id, data: "Success"};
+            response.write(Json.stringify(data));
         } else
         {
             response.writeHead(404);
         }
 
         response.end();
+    }
+
+    override private function handleClientConnected(clientId:Int):Void
+    {
+        super.handleClientConnected(clientId);
+
+        testClientId = clientId;
+    }
+
+    public function getClientId():Int
+    {
+        return testClientId;
     }
 }

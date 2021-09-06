@@ -12,3 +12,4 @@
 -D js-es6
 #-D no-deprecation-warnings
 -debug
+# -D UTEST_PATTERN=testHandlerTcpRequestResponse

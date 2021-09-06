@@ -1,5 +1,6 @@
 package com.domwires.ext.service.net.client.impl;
 
+import haxe.Json;
 import js.node.net.Socket;
 import js.node.Net;
 import js.node.http.IncomingMessage;
@@ -28,8 +29,8 @@ class NodeNetClientService extends AbstractService implements INetClientService
 
     private var client:Socket;
 
-    public var responseData(get, never):String;
-    private var _responseData:String;
+    public var responseData(get, never):RequestResponse;
+    private var _responseData:RequestResponse;
 
     public var isConnected(get, never):Bool;
     private var _isConnected:Bool = false;
@@ -58,7 +59,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
             return this;
         }
 
-        client = Net.connect({port: _tcpPort, host: _tcpHost}, () ->
+        client = cast Net.connect({port: _tcpPort, host: _tcpHost}, () ->
         {
             client.on(SocketEvent.End, () -> 
             {
@@ -67,6 +68,24 @@ class NodeNetClientService extends AbstractService implements INetClientService
                 handleDisconnect();
 
                 dispatchMessage(NetClientServiceMessageType.Disconnected);
+            });
+
+            var received:MessageBuffer = new MessageBuffer();
+
+            client.on(SocketEvent.Data, (chunk:String) ->
+            {
+                received.push(chunk);
+                while (!received.isFinished())
+                {
+                    var data:String = received.handleData();
+                    var resData:RequestResponse = validateResponse(data);
+
+                    _responseData = {id: resData.id, data: resData.data};
+
+                    handleTcpResponse();
+
+                    dispatchMessage(NetClientServiceMessageType.TcpResponse);
+                }
             });
 
             _isConnected = true;
@@ -98,16 +117,16 @@ class NodeNetClientService extends AbstractService implements INetClientService
         return this;
     }
 
-    public function send(request:RequestResponse):INetClientService
+    public function send(request:RequestResponse, type:RequestType):INetClientService
     {
         if (!checkEnabled())
         {
             return this;
         }
 
-        if (isHttp(request.type))
+        if (isHttp(type))
         {
-            sendHttpRequest(request);
+            sendHttpRequest(request, type);
         } else
         {
             sendTcpRequest(request);
@@ -116,10 +135,10 @@ class NodeNetClientService extends AbstractService implements INetClientService
         return this;
     }
 
-    private function sendHttpRequest(request:RequestResponse):INetClientService
+    private function sendHttpRequest(request:RequestResponse, type:RequestType):INetClientService
     {
         var method:Method;
-        if (request.type == RequestType.Post)
+        if (type == RequestType.Post)
         {
             method = Method.Post;
         } else
@@ -149,7 +168,9 @@ class NodeNetClientService extends AbstractService implements INetClientService
             });
             message.on("end", () ->
             {
-                _responseData = data;
+                var resData:RequestResponse = validateResponse(data);
+
+                _responseData = {id: resData.id, data: resData.data};
 
                 handleHttpResponse(message);
 
@@ -169,16 +190,39 @@ class NodeNetClientService extends AbstractService implements INetClientService
 
     private function sendTcpRequest(request:RequestResponse):INetClientService
     {
+        var message:String = "";
+
         if (request.data == null)
         {
-            trace("Nothing to send");
-
-            return this;
+            message = "{\"id\":\"" + request.id + "\"}\n";
+        } else
+        {
+            message = "{\"id\":\"" + request.id + "\",\"data\":" + request.data + "}\n";
         }
 
-        client.write(request.data);
+        client.write(message);
 
         return this;
+    }
+
+    private function validateResponse(data:String):RequestResponse
+    {
+        var resData:RequestResponse;
+
+        try
+        {
+            resData = Json.parse(data);
+        } catch (e:js.lib.Error)
+        {
+            throw haxe.io.Error.Custom("Response should be a JSON string: " + data);
+        }
+
+        if (resData.id == null)
+        {
+            throw haxe.io.Error.Custom("Response Json should contain \"id\" field!: " + data);
+        }
+
+        return resData;
     }
 
     private function handleConnect():Void
@@ -196,7 +240,12 @@ class NodeNetClientService extends AbstractService implements INetClientService
 
     }
 
-    private function get_responseData():String
+    private function handleTcpResponse():Void
+    {
+
+    }
+
+    private function get_responseData():RequestResponse
     {
         return _responseData;
     }
@@ -205,4 +254,5 @@ class NodeNetClientService extends AbstractService implements INetClientService
     {
         return _isConnected;
     }
+
 }

@@ -8,5 +8,5 @@ enum NetServerServiceMessageType
     ClientDisconnected;
     GotHttpRequest;
     SendHttpResponse;
-    GotTcpData;
+    GotTcpRequest;
 }
