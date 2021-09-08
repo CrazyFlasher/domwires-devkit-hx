@@ -59,7 +59,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
             return this;
         }
 
-        client = cast Net.connect({port: _tcpPort, host: _tcpHost}, () ->
+        client = Net.connect({port: _tcpPort, host: _tcpHost}, () ->
         {
             client.on(SocketEvent.End, () -> 
             {

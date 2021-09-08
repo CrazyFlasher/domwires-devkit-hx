@@ -1,8 +1,10 @@
 -main Test
+-lib tink_await
 -lib utest
 -lib hexinject
 -lib dox
 -lib hxnodejs
+-lib hxnodelibs
 -lib DomWires
 -lib test-adapter
 -cp src
@@ -10,6 +12,6 @@
 -js build/test.js
 -cmd node build/test.js --inspect
 -D js-es6
-#-D no-deprecation-warnings
+# -D no-deprecation-warnings
 -debug
-# -D UTEST_PATTERN=testHandlerTcpRequestResponse
+# -D UTEST_PATTERN=testInsertFindUpdateDelete

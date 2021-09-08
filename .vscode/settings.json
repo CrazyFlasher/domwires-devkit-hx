@@ -6,7 +6,8 @@
             "-js", "main.js",
             "-lib", "DomWires",
             "-lib", "utest",
-            "-lib", "hxnodejs"
+            "-lib", "hxnodejs",
+            "-lib", "hxnodelibs"
         ], // a configuration is array of arguments passed to the completion server
         [
             "build.hxml"

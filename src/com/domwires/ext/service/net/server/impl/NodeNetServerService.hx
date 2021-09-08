@@ -154,15 +154,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
             socket.on(SocketEvent.Data, (chunk:String) ->
             {
-                trace("chunk " + chunk);
-
                 received.push(chunk);
                 while (!received.isFinished())
                 {
                     var data:String = received.handleData();
                     _requestData = null;
-
-                    trace("HUJ " + data);
 
                     var reqData:RequestResponse = validateRequest(socket, data);
 

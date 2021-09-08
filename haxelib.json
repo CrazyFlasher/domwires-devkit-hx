@@ -11,8 +11,7 @@
     "server",
     "web",
     "socket",
-    "mongodb",
-    "express"
+    "mongodb"
   ],
   "description": "DomWires Framework Devkit",
   "version": "1.0.0-alpha.1",
@@ -24,6 +23,8 @@
   "dependencies": {
     "DomWires": "1.0.0-alpha.15",
     "hxnodejs": "12.1.0",
+    "hxnodelibs": "git:https://github.com/CrazyFlasher/hxnodelibs#c1b6389835cb307fd7b6a7ac8dd1b7760eff7c97",
+    "tink_await": "git:https://github.com/haxetink/tink_await#c063e7803367335f86fc27b9e4ade8167df3eb2d",
     "hxp": "1.1.4",
     "utest": "1.13.2",
     "test-adapter": "1.2.10"
