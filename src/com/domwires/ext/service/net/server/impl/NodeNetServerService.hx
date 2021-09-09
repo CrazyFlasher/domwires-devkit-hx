@@ -40,8 +40,8 @@ class NodeNetServerService extends AbstractService implements INetServerService
     private var httpServer:js.node.http.Server;
     private var tcpServer:js.node.net.Server;
 
-    private var isOpenedHttp:Bool = false;
-    private var isOpenedTcp:Bool = false;
+    public var isOpened(get, never):Bool;
+    private var _isOpened:Bool = false;
 
     private var httpReqMap:Map<String, RequestResponse> = [];
     private var tcpReqMap:Map<String, RequestResponse> = [];
@@ -58,21 +58,15 @@ class NodeNetServerService extends AbstractService implements INetServerService
         initResult(__enabled);
     }
 
-    public function close(?type:ServerType):INetServerService
+    public function close():INetServerService
     {
-        if (isOpenedHttp && httpServer != null && (type == null || type == ServerType.Http))
+        if (_isOpened)
         {
             httpServer.close((?error:Error) -> {
-                isOpenedHttp = false;
-                dispatchMessage(NetServerServiceMessageType.HttpClosed);
-            });
-        }
-
-        if (isOpenedTcp && tcpServer != null && (type == null || type == ServerType.Tcp))
-        {
-            tcpServer.close((?error:Error) -> {
-                isOpenedTcp = false;
-                dispatchMessage(NetServerServiceMessageType.TcpClosed);
+                tcpServer.close((?error:Error) -> {
+                    _isOpened = false;
+                    dispatchMessage(NetServerServiceMessageType.Closed);
+                });
             });
         }
 
@@ -130,8 +124,6 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
         httpServer.listen(_httpPort, _httpHost, () -> {
             trace("HTTP server created: " + _httpHost + ":" + _httpPort);
-
-            isOpenedHttp = true;
 
             createServerTcp();
         });
@@ -192,9 +184,9 @@ class NodeNetServerService extends AbstractService implements INetServerService
         tcpServer.listen(_tcpPort, _tcpHost, () -> {
             trace("TCP server created: " + _tcpHost + ":" + _tcpPort);
 
-            isOpenedTcp = true;
+            _isOpened = true;
 
-            dispatchMessage(NetServerServiceMessageType.Initialized);
+            dispatchMessage(NetServerServiceMessageType.Opened);
         });
     }
 
@@ -349,16 +341,6 @@ class NodeNetServerService extends AbstractService implements INetServerService
         return _tcpHost;
     }
 
-    public function isOpened(type:ServerType):Bool
-    {
-        if (type == ServerType.Http)
-        {
-            return isOpenedHttp;
-        }
-
-        return isOpenedTcp;
-    }
-
     private function getReqMap(type:RequestType):Map<String, RequestResponse>
     {
         if (isHttp(type))
@@ -402,6 +384,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
         {
             socket.end();
         }
+    }
+
+    private function get_isOpened():Bool
+    {
+        return _isOpened;
     }
 }
 

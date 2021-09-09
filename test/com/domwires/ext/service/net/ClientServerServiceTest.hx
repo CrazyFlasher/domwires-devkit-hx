@@ -45,68 +45,38 @@ class ClientServerServiceTest extends Test
         factory.mapClassNameToValue("Int", 3001, "INetClientService_tcpPort");
 
         server = factory.getInstance(INetServerService);
-        server.addMessageListener(NetServerServiceMessageType.Initialized, m -> async.done());
+        server.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
     }
 
     @:timeout(5000)
     public function teardown(async:Async):Void
     {
-        var httpClosed:Bool = !server.isOpened(ServerType.Http);
-        var tcpClosed:Bool = !server.isOpened(ServerType.Tcp);
-
         var complete:Void -> Void = () -> {
             server.dispose();
             async.done();
         };
 
-        server.addMessageListener(NetServerServiceMessageType.TcpClosed, m -> {
-            tcpClosed = true;
+        server.addMessageListener(NetServerServiceMessageType.Closed, m -> complete());
 
-            if (httpClosed)
-            {
-                complete();
-            }
-        });
-
-        server.addMessageListener(NetServerServiceMessageType.HttpClosed, m -> {
-            httpClosed = true;
-
-            if (tcpClosed)
-            {
-                complete();
-            }
-        });
-
-        server.close();
+        if (server.isOpened)
+        {
+            server.close();
+        } else
+        {
+            complete();
+        }
     }
 
     @:timeout(1000)
     public function testClose(async:Async):Void
     {
-        var httpClosed:Bool = false;
-        var tcpClosed:Bool = false;
+        server.addMessageListener(NetServerServiceMessageType.Closed, m -> {
+            Assert.isFalse(server.isOpened);
 
-        server.addMessageListener(NetServerServiceMessageType.HttpClosed, m -> {
-            httpClosed = true;
-
-            Assert.isFalse(server.isOpened(ServerType.Http));
-
-            server.close(ServerType.Tcp);
-
-            if (tcpClosed)
-                async.done();
+            async.done();
         });
 
-        server.addMessageListener(NetServerServiceMessageType.TcpClosed, m -> {
-            tcpClosed = true;
-
-            Assert.isFalse(server.isOpened(ServerType.Tcp));
-
-            if (httpClosed)
-                async.done();
-        });
-
-        server.close(ServerType.Http);
+        server.close();
     }
 
     @:timeout(1000)
