@@ -151,13 +151,11 @@ class ClientServerServiceTest extends Test
         server.addMessageListener(NetServerServiceMessageType.ClientDisconnected, m -> {
             Assert.equals(0, server.connectionsCount);
 
-            trace("*** Client disconnected: " + server.disconnectedClientId);
             async.done();
         });
         server.addMessageListener(NetServerServiceMessageType.ClientConnected, m -> {
             Assert.equals(1, server.connectionsCount);
 
-            trace("*** Client connected: " + server.connectedClientId);
             server.disconnectClient(server.connectedClientId);
         });
 

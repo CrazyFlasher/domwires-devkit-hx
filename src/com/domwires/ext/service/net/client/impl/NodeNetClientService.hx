@@ -62,7 +62,6 @@ class NodeNetClientService extends AbstractService implements INetClientService
         client = Net.connect({port: _tcpPort, host: _tcpHost}, () -> {
             client.on(SocketEvent.End, () -> {
 
-                trace("*** SocketEvent.End");
                 _isConnected = false;
 
                 handleDisconnect();
@@ -76,8 +75,6 @@ class NodeNetClientService extends AbstractService implements INetClientService
                 received.push(chunk);
                 while (!received.isFinished())
                 {
-                    trace("*** SocketEvent.Data");
-
                     var data:String = received.handleData();
                     var resData:RequestResponse = validateResponse(data);
 
@@ -164,7 +161,6 @@ class NodeNetClientService extends AbstractService implements INetClientService
             var data:String = "";
             message.on("data", (chunk:String) -> {
                 data += chunk;
-                trace(data);
             });
             message.on("end", () -> {
                 _responseData = {id: message.url, data: data};
