@@ -44,7 +44,7 @@ class ClientServerServiceTest extends Test
         factory.mapClassNameToValue("Int", 3001, "INetClientService_tcpPort");
     }
 
-    @:timeout(5000)
+    @:timeout(10000)
     public function teardown(async:Async):Void
     {
         var httpClosed:Bool = !server.isOpened(ServerType.Http);

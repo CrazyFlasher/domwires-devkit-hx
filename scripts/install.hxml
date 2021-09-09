@@ -2,8 +2,8 @@
 -cmd haxelib install DomWires 1.0.0-alpha.15 --quiet
 -cmd haxelib install dox 1.5.0 --quiet
 -cmd haxelib install hxnodejs 12.1.0 --quiet
--cmd haxelib git hxnodelibs https://github.com/CrazyFlasher/hxnodelibs 0055bbb63e4ff00a64a75ebbfb449c4a30afab83 --always
--cmd haxelib git tink_await https://github.com/haxetink/tink_await c063e7803367335f86fc27b9e4ade8167df3eb2d --always
+-cmd haxelib git hxnodelibs https://github.com/CrazyFlasher/hxnodelibs 0055bbb63e4ff00a64a75ebbfb449c4a30afab83 --always --quiet
+-cmd haxelib git tink_await https://github.com/haxetink/tink_await c063e7803367335f86fc27b9e4ade8167df3eb2d --always --quiet
 -cmd haxelib install hxp 1.1.4 --quiet
 -cmd haxelib install utest 1.13.2 --quiet
 -cmd haxelib install test-adapter 1.2.10 --quiet
