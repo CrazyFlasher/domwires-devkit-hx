@@ -9,4 +9,6 @@ interface INetServerServiceImmutable extends IServiceIImmutable
     var requestData(get, never):RequestResponse;
     var isOpened(get, never):Bool;
     var connectionsCount(get, never):Int;
+    var connectedClientId(get, never):Int;
+    var disconnectedClientId(get, never):Int;
 }

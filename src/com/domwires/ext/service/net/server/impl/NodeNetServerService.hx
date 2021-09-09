@@ -49,6 +49,12 @@ class NodeNetServerService extends AbstractService implements INetServerService
     public var connectionsCount(get, never):Int;
     private var _connectionsCount:Int = 0;
 
+    public var connectedClientId(get, never):Int;
+    private var _connectedClientId:Int;
+
+    public var disconnectedClientId(get, never):Int;
+    private var _disconnectedClientId:Int;
+
     private var clientIdMap:Map<Int, SocketClient> = [];
 
     private var nextClientId:Int = 1;
@@ -192,8 +198,6 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     private function handleSocketConnectionLost(socket:Socket):Void
     {
-
-
         dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
     }
 
@@ -225,14 +229,14 @@ class NodeNetServerService extends AbstractService implements INetServerService
     {
         _connectionsCount++;
 
-        var clientId:Int = nextClientId;
+        _connectedClientId = nextClientId;
         nextClientId++;
 
-        untyped socket.id = clientId;
+        untyped socket.id = _connectedClientId;
 
-        clientIdMap.set(clientId, new SocketClient(clientId, socket));
+        clientIdMap.set(_connectedClientId, new SocketClient(_connectedClientId, socket));
 
-        trace("Client connected: " + clientId + "; Total clients: " + _connectionsCount);
+        trace("Client connected: id: " + _connectedClientId + "; Total clients: " + _connectionsCount);
     }
 
     private function handleClientDisconnected(socket:Socket):Void
@@ -245,10 +249,12 @@ class NodeNetServerService extends AbstractService implements INetServerService
             throw haxe.io.Error.Custom("Client with id " + clientId + " doesn't exist!");
         }
 
+        _disconnectedClientId = clientId;
+
         clientIdMap.remove(clientId);
         socket.destroy();
 
-        trace("Client disconnected: " + clientId + "; Total clients: " + _connectionsCount);
+        trace("Client disconnected: id: " + clientId + "; Total clients: " + _connectionsCount);
     }
 
     private function handleHttpRequest(message:IncomingMessage):Void
@@ -277,6 +283,40 @@ class NodeNetServerService extends AbstractService implements INetServerService
         }
 
         clientIdMap.get(clientId).socket.write(Json.stringify(response) + "\n");
+
+        return this;
+    }
+
+    public function disconnectClient(clientId:Int):INetServerService
+    {
+        if (!checkIsOpened())
+        {
+            return this;
+        }
+
+        if (!clientIdMap.exists(clientId))
+        {
+            trace("Cannot disconnect client. Not found: " + clientId);
+
+            return this;
+        }
+
+        clientIdMap.get(clientId).socket.end();
+
+        return this;
+    }
+
+    public function disconnectAllClients():INetServerService
+    {
+        if (!checkIsOpened())
+        {
+            return this;
+        }
+
+        for (client in clientIdMap.iterator())
+        {
+            client.socket.end();
+        }
 
         return this;
     }
@@ -389,6 +429,28 @@ class NodeNetServerService extends AbstractService implements INetServerService
     private function get_isOpened():Bool
     {
         return _isOpened;
+    }
+
+    private function get_disconnectedClientId():Int
+    {
+        return _disconnectedClientId;
+    }
+
+    private function get_connectedClientId():Int
+    {
+        return _connectedClientId;
+    }
+
+    private function checkIsOpened():Bool
+    {
+        if (!_isOpened)
+        {
+            trace("Server is not opened!");
+
+            return false;
+        }
+
+        return true;
     }
 }
 
