@@ -145,16 +145,20 @@ class ClientServerServiceTest extends Test
         client.send(request, RequestType.Get);
     }
 
-    @:timeout(1000)
+    @:timeout(10000)
     public function testHandlerTcpConnectServer(async:Async):Void
     {
         server.addMessageListener(NetServerServiceMessageType.ClientDisconnected, m -> {
             Assert.equals(0, server.connectionsCount);
+
+            trace("*** Client disconnected!");
             async.done();
         });
         server.addMessageListener(NetServerServiceMessageType.ClientConnected, m -> {
             Assert.equals(1, server.connectionsCount);
+
             
+            trace("*** Client connected!");
             client.disconnect();
         });
 
