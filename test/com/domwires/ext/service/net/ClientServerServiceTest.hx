@@ -151,7 +151,6 @@ class ClientServerServiceTest extends Test
         server.addMessageListener(NetServerServiceMessageType.ClientConnected, m -> {
             Assert.equals(1, server.connectionsCount);
 
-            client.disconnect();
             async.done();
         });
 
