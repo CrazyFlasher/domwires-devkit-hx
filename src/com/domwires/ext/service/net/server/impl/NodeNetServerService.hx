@@ -91,7 +91,6 @@ class NodeNetServerService extends AbstractService implements INetServerService
         super.initSuccess();
 
         createServerHttp();
-        createServerTcp();
     }
 
     private function createServerHttp():Void
@@ -131,9 +130,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
         httpServer.listen(_httpPort, _httpHost, () -> {
             trace("HTTP server created: " + _httpHost + ":" + _httpPort);
-        });
 
-        isOpenedHttp = true;
+            isOpenedHttp = true;
+
+            createServerTcp();
+        });
     }
 
     private function createServerTcp():Void
@@ -190,9 +191,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
         tcpServer.listen(_tcpPort, _tcpHost, () -> {
             trace("TCP server created: " + _tcpHost + ":" + _tcpPort);
-        });
 
-        isOpenedTcp = true;
+            isOpenedTcp = true;
+
+            dispatchMessage(NetServerServiceMessageType.Initialized);
+        });
     }
 
     private function handleSocketConnectionLost(socket:Socket):Void

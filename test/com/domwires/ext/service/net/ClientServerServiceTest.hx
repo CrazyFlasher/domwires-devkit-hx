@@ -26,7 +26,8 @@ class ClientServerServiceTest extends Test
     public function teardownClass():Void
     {}
 
-    public function setup():Void
+    @:timeout(1000)
+    public function setup(async:Async):Void
     {
         factory = new AppFactory();
 
@@ -42,9 +43,12 @@ class ClientServerServiceTest extends Test
         factory.mapClassNameToValue("String", "127.0.0.1", "INetClientService_tcpHost");
         factory.mapClassNameToValue("Int", 3000, "INetClientService_httpPort");
         factory.mapClassNameToValue("Int", 3001, "INetClientService_tcpPort");
+
+        server = factory.getInstance(INetServerService);
+        server.addMessageListener(NetServerServiceMessageType.Initialized, m -> async.done());
     }
 
-    @:timeout(10000)
+    @:timeout(1000)
     public function teardown(async:Async):Void
     {
         var httpClosed:Bool = !server.isOpened(ServerType.Http);
@@ -82,7 +86,6 @@ class ClientServerServiceTest extends Test
         var httpClosed:Bool = false;
         var tcpClosed:Bool = false;
 
-        server = factory.getInstance(INetServerService);
         server.addMessageListener(NetServerServiceMessageType.HttpClosed, m -> {
             httpClosed = true;
 
@@ -114,7 +117,6 @@ class ClientServerServiceTest extends Test
             data: "Dummy request"
         };
 
-        server = factory.getInstance(INetServerService);
         server.startListen({id: "/test"}, RequestType.Post);
         server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
             Assert.equals(request.data, server.requestData.data);
@@ -137,7 +139,6 @@ class ClientServerServiceTest extends Test
             data: "{\"data\":\"Dummy request\"}"
         };
 
-        server = factory.getInstance(INetServerService);
         server.startListen({id: "/test"}, RequestType.Get);
         server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
             Assert.equals(request.data, server.requestData.data);
@@ -159,7 +160,6 @@ class ClientServerServiceTest extends Test
             id: "test?param_1=preved&param_2=boga"
         };
 
-        server = factory.getInstance(INetServerService);
         server.startListen({id: "/test"}, RequestType.Get);
         server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
             Assert.equals(server.getQueryParam("param_1"), "preved");
@@ -178,7 +178,6 @@ class ClientServerServiceTest extends Test
     @:timeout(1000)
     public function testHandlerTcpConnectServer(async:Async):Void
     {
-        server = factory.getInstance(INetServerService);
         server.addMessageListener(NetServerServiceMessageType.ClientConnected, m -> {
             Assert.equals(1, server.connectionsCount);
 
@@ -193,7 +192,6 @@ class ClientServerServiceTest extends Test
     @:timeout(1000)
     public function testHandlerTcpConnectDisconnectClient(async:Async):Void
     {
-        server = factory.getInstance(INetServerService);
         client = factory.getInstance(INetClientService);
 
         Assert.isFalse(client.isConnected);
@@ -215,7 +213,6 @@ class ClientServerServiceTest extends Test
     @:timeout(10000)
     public function testHandlerTcpRequestResponse(async:Async):Void
     {
-        server = factory.getInstance(INetServerService);
         client = factory.getInstance(INetClientService);
 
         client.addMessageListener(NetClientServiceMessageType.Connected, m -> {

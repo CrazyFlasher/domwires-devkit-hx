@@ -9,4 +9,5 @@ enum NetServerServiceMessageType
     GotHttpRequest;
     SendHttpResponse;
     GotTcpRequest;
+    Initialized;
 }
