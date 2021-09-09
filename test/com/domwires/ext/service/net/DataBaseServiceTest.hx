@@ -12,10 +12,13 @@ import utest.Test;
 
 class DataBaseServiceTest extends Test
 {
+    public static final TABLE_NAME:String = "testTable";
+
     private var factory:IAppFactory;
     private var db:DummyDb;
 
-    public function setup():Void
+    @:timeout(5000)
+    public function setup(async:Async):Void
     {
         factory = new AppFactory();
 
@@ -23,9 +26,20 @@ class DataBaseServiceTest extends Test
 
         factory.mapClassNameToValue("String", "mongodb://127.0.0.1:27017", "IDataBaseService_uri");
         factory.mapClassNameToValue("String", "test_data_base", "IDataBaseService_dataBaseName");
+
+        db = cast factory.getInstance(IDataBaseService);
+
+        db.addMessageListener(DataBaseServiceMessageType.CreateTableResult, m -> {
+            async.done();
+        });
+        db.addMessageListener(DataBaseServiceMessageType.Connected, m -> {
+            db.createTable(TABLE_NAME, ["lastName"]);
+        });
+
+        db.connect();
     }
 
-    @:timeout(2000)
+    @:timeout(5000)
     public function teardown(async:Async):Void
     {
         db.addMessageListener(DataBaseServiceMessageType.Disconnected, m -> {
@@ -41,7 +55,7 @@ class DataBaseServiceTest extends Test
 
         if (db.isConnected)
         {
-            db.dropTable("testTable");
+            db.dropTable(TABLE_NAME);
         } else
         {
             db.dispose();
@@ -49,29 +63,9 @@ class DataBaseServiceTest extends Test
         }
     }
 
-    @:timeout(2000)
-    public function testConnectDisconnect(async:Async):Void
-    {
-        db = cast factory.getInstance(IDataBaseService);
-        db.addMessageListener(DataBaseServiceMessageType.Connected, m -> {
-            Assert.isTrue(db.isConnected);
-
-            db.disconnect();
-        });
-        db.addMessageListener(DataBaseServiceMessageType.Disconnected, m -> {
-            Assert.isFalse(db.isConnected);
-
-            async.done();
-        });
-
-        db.connect();
-    }
-
-    @:timeout(2000)
+    @:timeout(5000)
     public function testInsertFindUpdateDelete(async:Async):Void
     {
-        db = cast factory.getInstance(IDataBaseService);
-
         db.addMessageListener(DataBaseServiceMessageType.DeleteResult, m -> {
             db.addMessageListener(DataBaseServiceMessageType.FindResult, m -> {
                 Assert.isNull(db.getResult());
@@ -79,20 +73,17 @@ class DataBaseServiceTest extends Test
                 async.done();
             });
 
-            db.find("testTable", {lastName: "Pukallo"});
+            db.find(TABLE_NAME, {lastName: "Pukallo"});
         });
         db.addMessageListener(DataBaseServiceMessageType.UpdateResult, m -> {
-            db.find("testTable", {firstName: "Anton"});
+            db.find(TABLE_NAME, {firstName: "Anton"});
         });
         db.addMessageListener(DataBaseServiceMessageType.FindResult, findCb_1);
         db.addMessageListener(DataBaseServiceMessageType.InsertResult, m -> {
-            db.find("testTable", {firstName: "Anton"});
-        });
-        db.addMessageListener(DataBaseServiceMessageType.Connected, m -> {
-            db.insert("testTable", [{firstName: "Anton", lastName: "Nefjodov"}]);
+            db.find(TABLE_NAME, {firstName: "Anton"});
         });
 
-        db.connect();
+        db.insert(TABLE_NAME, [{firstName: "Anton", lastName: "Nefjodov"}]);
     }
 
     private function findCb_1(m:IMessage):Void
@@ -102,7 +93,7 @@ class DataBaseServiceTest extends Test
 
         Assert.equals("Anton", db.getResult().firstName);
 
-        db.update("testTable", {firstName: "Anton"}, {lastName: "Pukallo"});
+        db.update(TABLE_NAME, {firstName: "Anton"}, {lastName: "Pukallo"});
     }
 
     private function findCb_2(m:IMessage):Void
@@ -111,7 +102,21 @@ class DataBaseServiceTest extends Test
 
         Assert.equals("Pukallo", db.getResult().lastName);
 
-        db.delete("testTable", {lastName:"Pukallo"});
+        db.delete(TABLE_NAME, {lastName:"Pukallo"});
+    }
+
+    @:timeout(5000)
+    public function testInsertDuplicateError(async:Async):Void
+    {
+        db.addMessageListener(DataBaseServiceMessageType.InsertError, m -> {
+            Assert.equals(MongoErrorCode.Duplicate, db.getError().code);
+            async.done();
+        });
+
+        db.insert(TABLE_NAME, [
+            {firstName: "Onton", lastName: "Ololoev"},
+            {firstName: "Dzigurda", lastName: "Ololoev"}
+        ]);
     }
 }
 
@@ -120,5 +125,10 @@ class DummyDb extends NodeMongoDatabaseService
     public function getResult():Dynamic
     {
         return result;
+    }
+
+    public function getError():MongoError
+    {
+        return error;
     }
 }

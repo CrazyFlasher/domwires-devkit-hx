@@ -9,6 +9,7 @@ enum DataBaseServiceMessageType
     UpdateResult;
     DeleteResult;
     DropTableResult;
+    CreateTableResult;
 
     ConnectError;
     InsertError;

@@ -7,10 +7,18 @@ jobs:
     strategy:
       matrix:
         haxe-version: [4.2.3]
+        mongodb-version: ['4.4']
         hxml: [scripts/build.hxml]
 
     runs-on: ubuntu-latest
     steps:
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.6.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-replica-set: test-rs
+          mongodb-port: 27017
+
       - uses: actions/checkout@v1
       - uses: krdlab/setup-haxe@v1
         with:

@@ -85,8 +85,7 @@ class ModelFromTypeDefTest extends Test
         factory.mapClassNameToValue("mock.GameObject", data);
 
         var model:IGameObjectModel = factory.getInstance(IGameObjectModel);
-        model.addMessageListener(GameObjectModelMessageType.OnSetId, m ->
-        {
+        model.addMessageListener(GameObjectModelMessageType.OnSetId, m -> {
             Assert.isTrue(true);
             async.done();
         });

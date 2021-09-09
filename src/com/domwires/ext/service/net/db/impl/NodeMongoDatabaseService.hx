@@ -135,8 +135,7 @@ import js.npm.mongodb.MongoDatabase;
         var promise:Promise<Dynamic> = itemList.length == 1 ?
             collection.insertOne(itemList[0]) : collection.insertMany(itemList);
 
-        promise.then(result ->
-        {
+        promise.then(result -> {
             this.result = result;
             handleInsertResult();
             dispatchMessage(DataBaseServiceMessageType.InsertResult);
@@ -257,6 +256,50 @@ import js.npm.mongodb.MongoDatabase;
 
     }
 
+    public function createTable(name:String, ?uniqueIndexList:Array<String>):IDataBaseService
+    {
+        if (!checkBeforeQuery()) return this;
+
+        database.createCollection(name, (error:Error, resultCollection:MongoCollection) -> {
+            if (error != null)
+            {
+                throw error;
+            }
+
+            if (uniqueIndexList != null && uniqueIndexList.length > 0)
+            {
+                var indexData:Dynamic = {};
+                for (indexName in uniqueIndexList)
+                {
+                    Reflect.setField(indexData, indexName, 1);
+                }
+                var promise:Promise<Dynamic> = resultCollection.createIndex(indexData, {unique: true});
+                promise.then(indexName -> {
+                    createTableSuccess(result);
+                }).catchError(e -> {
+                    trace("pizdec");
+                });
+            } else
+            {
+                createTableSuccess(result);
+            }
+        });
+
+        return this;
+    }
+
+    private function createTableSuccess(result:Dynamic):Void
+    {
+        this.result = result;
+        handleCreateTableResult();
+        dispatchMessage(DataBaseServiceMessageType.CreateTableResult);
+    }
+
+    private function handleCreateTableResult():Void
+    {
+
+    }
+
     public function dropTable(tableName:String):IDataBaseService
     {
         if (!checkBeforeQuery()) return this;
@@ -363,4 +406,9 @@ typedef MongoError = {
     errmsg:String,
     message:String,
     stack:String
+}
+
+enum abstract MongoErrorCode(Int)
+{
+    var Duplicate = 11000;
 }

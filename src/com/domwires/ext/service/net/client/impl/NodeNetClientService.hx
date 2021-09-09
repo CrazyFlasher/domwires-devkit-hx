@@ -59,10 +59,8 @@ class NodeNetClientService extends AbstractService implements INetClientService
             return this;
         }
 
-        client = Net.connect({port: _tcpPort, host: _tcpHost}, () ->
-        {
-            client.on(SocketEvent.End, () -> 
-            {
+        client = Net.connect({port: _tcpPort, host: _tcpHost}, () -> {
+            client.on(SocketEvent.End, () -> {
                 _isConnected = false;
 
                 handleDisconnect();
@@ -72,8 +70,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
 
             var received:MessageBuffer = new MessageBuffer();
 
-            client.on(SocketEvent.Data, (chunk:String) ->
-            {
+            client.on(SocketEvent.Data, (chunk:String) -> {
                 received.push(chunk);
                 while (!received.isFinished())
                 {
@@ -158,16 +155,13 @@ class NodeNetClientService extends AbstractService implements INetClientService
             }
         };
 
-        var req:ClientRequest = Http.request(options, (message:IncomingMessage) ->
-        {
+        var req:ClientRequest = Http.request(options, (message:IncomingMessage) -> {
             var data:String = "";
-            message.on("data", (chunk:String) -> 
-            {
+            message.on("data", (chunk:String) -> {
                 data += chunk;
                 trace(data);
             });
-            message.on("end", () ->
-            {
+            message.on("end", () -> {
                 _responseData = {id: message.url, data: data};
 
                 handleHttpResponse(message);

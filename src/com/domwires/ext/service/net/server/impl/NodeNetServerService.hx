@@ -62,8 +62,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
     {
         if (isOpenedHttp && httpServer != null && (type == null || type == ServerType.Http))
         {
-            httpServer.close((?error:Error) ->
-            {
+            httpServer.close((?error:Error) -> {
                 isOpenedHttp = false;
                 dispatchMessage(NetServerServiceMessageType.HttpClosed);
             });
@@ -71,8 +70,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
         if (isOpenedTcp && tcpServer != null && (type == null || type == ServerType.Tcp))
         {
-            tcpServer.close((?error:Error) ->
-            {
+            tcpServer.close((?error:Error) -> {
                 isOpenedTcp = false;
                 dispatchMessage(NetServerServiceMessageType.TcpClosed);
             });
@@ -98,23 +96,20 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     private function createServerHttp():Void
     {
-        httpServer = Http.createServer((message:IncomingMessage, response:ServerResponse) ->
-        {
+        httpServer = Http.createServer((message:IncomingMessage, response:ServerResponse) -> {
             var isHttps:Bool = message.connection.encrypted;
             var requestUrl:URL = new URL(message.url, (isHttps ? "https" : "http") + "://" + _httpHost);
             var req:RequestResponse = httpReqMap.get(requestUrl.pathname);
             if (req != null)
             {
                 var data:String = "";
-                message.on("error", (error:Error) -> 
-                {
+                message.on("error", (error:Error) -> {
                     trace(error);
                     response.statusCode = 400;
                     response.end();
                 });
                 message.on("data", (chunk:String) -> data += chunk);
-                message.on("end", () ->
-                {
+                message.on("end", () -> {
                     _requestData = {id: requestUrl.pathname, data: data};
 
                     queryParams = requestUrl.searchParams;
@@ -134,8 +129,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
             }
         });
 
-        httpServer.listen(_httpPort, _httpHost, () ->
-        {
+        httpServer.listen(_httpPort, _httpHost, () -> {
             trace("HTTP server created: " + _httpHost + ":" + _httpPort);
         });
 
@@ -144,16 +138,14 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     private function createServerTcp():Void
     {
-        tcpServer = Net.createServer((socket:Socket) ->
-        {
+        tcpServer = Net.createServer((socket:Socket) -> {
             handleClientConnected(socket);
             
             dispatchMessage(NetServerServiceMessageType.ClientConnected);
 
             var received:MessageBuffer = new MessageBuffer();
 
-            socket.on(SocketEvent.Data, (chunk:String) ->
-            {
+            socket.on(SocketEvent.Data, (chunk:String) -> {
                 received.push(chunk);
                 while (!received.isFinished())
                 {
@@ -177,15 +169,13 @@ class NodeNetServerService extends AbstractService implements INetServerService
                 }
             });
 
-            socket.on(SocketEvent.End, () ->
-            {
+            socket.on(SocketEvent.End, () -> {
                 handleClientDisconnected(socket);
 
                 dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
             });
 
-            socket.on(SocketEvent.Error, (error:Error) ->
-            {
+            socket.on(SocketEvent.Error, (error:Error) -> {
                 trace(error);
 
                 handleSocketConnectionLost(socket);
@@ -194,13 +184,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
             });
         });
 
-        tcpServer.on(SocketEvent.Error, (error:Error) ->
-        {
+        tcpServer.on(SocketEvent.Error, (error:Error) -> {
             trace(error);
         });
 
-        tcpServer.listen(_tcpPort, _tcpHost, () ->
-        {
+        tcpServer.listen(_tcpPort, _tcpHost, () -> {
             trace("TCP server created: " + _tcpHost + ":" + _tcpPort);
         });
 

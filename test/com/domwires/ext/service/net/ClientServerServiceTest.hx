@@ -50,14 +50,12 @@ class ClientServerServiceTest extends Test
         var httpClosed:Bool = !server.isOpened(ServerType.Http);
         var tcpClosed:Bool = !server.isOpened(ServerType.Tcp);
 
-        var complete:Void -> Void = () ->
-        {
+        var complete:Void -> Void = () -> {
             server.dispose();
             async.done();
         };
 
-        server.addMessageListener(NetServerServiceMessageType.TcpClosed, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.TcpClosed, m -> {
             tcpClosed = true;
 
             if (httpClosed)
@@ -66,8 +64,7 @@ class ClientServerServiceTest extends Test
             }
         });
 
-        server.addMessageListener(NetServerServiceMessageType.HttpClosed, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.HttpClosed, m -> {
             httpClosed = true;
 
             if (tcpClosed)
@@ -86,8 +83,7 @@ class ClientServerServiceTest extends Test
         var tcpClosed:Bool = false;
 
         server = factory.getInstance(INetServerService);
-        server.addMessageListener(NetServerServiceMessageType.HttpClosed, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.HttpClosed, m -> {
             httpClosed = true;
 
             Assert.isFalse(server.isOpened(ServerType.Http));
@@ -98,8 +94,7 @@ class ClientServerServiceTest extends Test
                 async.done();
         });
 
-        server.addMessageListener(NetServerServiceMessageType.TcpClosed, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.TcpClosed, m -> {
             tcpClosed = true;
 
             Assert.isFalse(server.isOpened(ServerType.Tcp));
@@ -121,14 +116,12 @@ class ClientServerServiceTest extends Test
 
         server = factory.getInstance(INetServerService);
         server.startListen({id: "/test"}, RequestType.Post);
-        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
             Assert.equals(request.data, server.requestData.data);
         });
 
         client = factory.getInstance(INetClientService);
-        client.addMessageListener(NetClientServiceMessageType.HttpResponse, m -> 
-        {
+        client.addMessageListener(NetClientServiceMessageType.HttpResponse, m -> {
             Assert.equals("Success", client.responseData.data);
             async.done();
         });
@@ -146,14 +139,12 @@ class ClientServerServiceTest extends Test
 
         server = factory.getInstance(INetServerService);
         server.startListen({id: "/test"}, RequestType.Get);
-        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
             Assert.equals(request.data, server.requestData.data);
         });
 
         client = factory.getInstance(INetClientService);
-        client.addMessageListener(NetClientServiceMessageType.HttpResponse, m ->
-        {
+        client.addMessageListener(NetClientServiceMessageType.HttpResponse, m -> {
             Assert.equals("Success", client.responseData.data);
             async.done();
         });
@@ -170,15 +161,13 @@ class ClientServerServiceTest extends Test
 
         server = factory.getInstance(INetServerService);
         server.startListen({id: "/test"}, RequestType.Get);
-        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
             Assert.equals(server.getQueryParam("param_1"), "preved");
             Assert.equals(server.getQueryParam("param_2"), "boga");
         });
 
         client = factory.getInstance(INetClientService);
-        client.addMessageListener(NetClientServiceMessageType.HttpResponse, m ->
-        {
+        client.addMessageListener(NetClientServiceMessageType.HttpResponse, m -> {
             Assert.equals("Success", client.responseData.data);
             async.done();
         });
@@ -190,8 +179,7 @@ class ClientServerServiceTest extends Test
     public function testHandlerTcpConnectServer(async:Async):Void
     {
         server = factory.getInstance(INetServerService);
-        server.addMessageListener(NetServerServiceMessageType.ClientConnected, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.ClientConnected, m -> {
             Assert.equals(1, server.connectionsCount);
 
             client.disconnect();
@@ -210,14 +198,12 @@ class ClientServerServiceTest extends Test
 
         Assert.isFalse(client.isConnected);
 
-        client.addMessageListener(NetClientServiceMessageType.Connected, m ->
-        {
+        client.addMessageListener(NetClientServiceMessageType.Connected, m -> {
             Assert.isTrue(client.isConnected);
 
             client.disconnect();
         });
-        client.addMessageListener(NetClientServiceMessageType.Disconnected, m ->
-        {
+        client.addMessageListener(NetClientServiceMessageType.Disconnected, m -> {
             Assert.isFalse(client.isConnected);
 
             async.done();
@@ -232,8 +218,7 @@ class ClientServerServiceTest extends Test
         server = factory.getInstance(INetServerService);
         client = factory.getInstance(INetClientService);
 
-        client.addMessageListener(NetClientServiceMessageType.Connected, m ->
-        {
+        client.addMessageListener(NetClientServiceMessageType.Connected, m -> {
             var json:Dynamic = {people: []};
             for (i in 0...1)
             {
@@ -247,8 +232,7 @@ class ClientServerServiceTest extends Test
             client.send({id: "test", data: json}, RequestType.Tcp);
         });
 
-        client.addMessageListener(NetClientServiceMessageType.TcpResponse, m ->
-        {
+        client.addMessageListener(NetClientServiceMessageType.TcpResponse, m -> {
             Assert.equals("test", client.responseData.id);
             Assert.equals("Preved", client.responseData.data);
 
@@ -256,8 +240,7 @@ class ClientServerServiceTest extends Test
             async.done();
         });
 
-        server.addMessageListener(NetServerServiceMessageType.GotTcpRequest, m ->
-        {
+        server.addMessageListener(NetServerServiceMessageType.GotTcpRequest, m -> {
             Assert.equals("Anton", server.requestData.data.people[0].firstName);
 
             server.sendTcpResponse(cast (server, DummyServer).getClientId(), {id: "test", data: "Preved"});
