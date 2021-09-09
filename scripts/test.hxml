@@ -14,4 +14,4 @@
 -D js-es6
 # -D no-deprecation-warnings
 -debug
-# -D UTEST_PATTERN=testInsertFindUpdateDelete
+# -D UTEST_PATTERN=testHandlerTcpConnectServer

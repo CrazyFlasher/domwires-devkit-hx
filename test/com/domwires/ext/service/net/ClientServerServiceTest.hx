@@ -26,7 +26,7 @@ class ClientServerServiceTest extends Test
     public function teardownClass():Void
     {}
 
-    @:timeout(1000)
+    @:timeout(5000)
     public function setup(async:Async):Void
     {
         factory = new AppFactory();
@@ -48,7 +48,7 @@ class ClientServerServiceTest extends Test
         server.addMessageListener(NetServerServiceMessageType.Initialized, m -> async.done());
     }
 
-    @:timeout(1000)
+    @:timeout(5000)
     public function teardown(async:Async):Void
     {
         var httpClosed:Bool = !server.isOpened(ServerType.Http);
