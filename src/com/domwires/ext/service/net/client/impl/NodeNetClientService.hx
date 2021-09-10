@@ -183,6 +183,11 @@ class NodeNetClientService extends AbstractService implements INetClientService
 
     private function sendTcpRequest(request:RequestResponse):INetClientService
     {
+        if (!_isConnected)
+        {
+            throw haxe.io.Error.Custom("Cannot send TCP request! Not connected!");
+        }
+
         var message:String = "";
 
         if (request.data == null)

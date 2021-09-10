@@ -1,10 +1,14 @@
 package com.domwires.ext.service;
 
+import com.domwires.core.factory.IAppFactory;
 import com.domwires.core.mvc.model.AbstractModel;
 import haxe.io.Error;
 
 class AbstractService extends AbstractModel implements IService
 {
+    @Inject @Optional
+    private var factory:IAppFactory;
+
     public var enabled(get, never):Bool;
 
     private var _enabled:Bool;

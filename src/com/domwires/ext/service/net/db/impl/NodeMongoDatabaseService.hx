@@ -89,7 +89,7 @@ import js.npm.mongodb.MongoDatabase;
 
     private function handleDisconnect(?error:Error, ?data:Dynamic):Void
     {
-        trace("Disconnected: Error: " + error + "; Data: " + data);
+        trace("Disconnected: Data: " + data + "; Error: " + error);
 
         collectionMap.clear();
 

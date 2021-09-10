@@ -1,5 +1,8 @@
 package com.domwires.ext.service.net.server.impl;
 
+import com.domwires.core.common.AbstractDisposable;
+import com.domwires.core.common.IDisposable;
+import com.domwires.core.factory.AppFactory;
 import haxe.Json;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
 import com.domwires.ext.service.net.server.INetServerService;
@@ -61,6 +64,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     override private function init():Void
     {
+        if (factory == null)
+        {
+            factory = new AppFactory();
+        }
+
         initResult(__enabled);
     }
 
@@ -160,9 +168,12 @@ class NodeNetServerService extends AbstractService implements INetServerService
                         {
                             _requestData = {id: reqData.id, data: reqData.data};
 
-                            handleTcpRequest(socket);
+                            handleTcpRequest(untyped socket.id);
 
                             dispatchMessage(NetServerServiceMessageType.GotTcpRequest);
+                        } else
+                        {
+                            trace("Ignoring TCP request: " + reqData.id);
                         }
                     }
                 }
@@ -234,7 +245,13 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
         untyped socket.id = _connectedClientId;
 
-        clientIdMap.set(_connectedClientId, new SocketClient(_connectedClientId, socket));
+        factory.mapClassNameToValue("js.node.net.Socket", socket, "SocketClient_socket");
+        factory.mapClassNameToValue("Int", _connectedClientId, "SocketClient_id");
+
+        clientIdMap.set(_connectedClientId, factory.getInstance(SocketClient));
+
+        factory.unmapClassName("Int", "SocketClient_id");
+        factory.unmap(js.node.net.Socket, "SocketClient_socket");
 
         trace("Client connected: id: " + _connectedClientId + "; Total clients: " + _connectionsCount);
     }
@@ -271,7 +288,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
         response.end();
     }
 
-    private function handleTcpRequest(socket:Socket):Void
+    private function handleTcpRequest(clientId:Int):Void
     {
     }
 
@@ -454,22 +471,19 @@ class NodeNetServerService extends AbstractService implements INetServerService
     }
 }
 
-class SocketClient
+class SocketClient extends AbstractDisposable
 {
     public var socket(get, never):Socket;
+
+    @Inject("SocketClient_socket")
     private var _socket:Socket;
 
     public var id(get, never):Int;
+
+    @Inject("SocketClient_id")
     private var _id:Int;
 
-    public function new(id:Int, socket:Socket) 
-    {
-
-        _socket = socket;
-        _id = id;
-    }
-
-    private function get_socket():Socket 
+    private function get_socket():Socket
     {
         return _socket;
     }

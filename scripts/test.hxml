@@ -12,6 +12,7 @@
 -js build/test.js
 -cmd node build/test.js --inspect
 -D js-es6
-# -D no-deprecation-warnings
+-D no-deprecation-warnings
 -debug
-#  -D UTEST_PATTERN=testHandlerTcpConnectServer
+-D UTEST_PRINT_TESTS
+# -D UTEST_PATTERN=AuthStackTest

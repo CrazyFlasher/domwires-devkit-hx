@@ -10,6 +10,7 @@ class Test
         runner.addCase(new typedeftest.ModelFromTypeDefTest());
         runner.addCase(new com.domwires.ext.service.net.ClientServerServiceTest());
         runner.addCase(new com.domwires.ext.service.net.DataBaseServiceTest());
+        runner.addCase(new com.domwires.ext.service.net.AuthStackTest());
 
         Report.create(runner);
         runner.run();
