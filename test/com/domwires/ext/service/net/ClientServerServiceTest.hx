@@ -1,17 +1,17 @@
 package com.domwires.ext.service.net;
 
-import com.domwires.ext.service.net.server.socket.SocketServerServiceMessageType;
-import com.domwires.ext.service.net.server.socket.impl.NodeSocketServerService;
-import com.domwires.ext.service.net.server.http.impl.NodeHttpServerService;
-import com.domwires.ext.service.net.server.socket.ISocketServerService;
-import com.domwires.ext.service.net.server.http.IHttpServerService;
+import com.domwires.ext.service.net.client.RequestType;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.client.impl.NodeNetClientService;
 import com.domwires.ext.service.net.client.INetClientService;
 import com.domwires.ext.service.net.client.NetClientServiceMessageType;
-import com.domwires.ext.service.net.server.INetServerService;
+import com.domwires.ext.service.net.server.http.IHttpServerService;
+import com.domwires.ext.service.net.server.http.impl.NodeHttpServerService;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import com.domwires.ext.service.net.server.socket.impl.NodeSocketServerService;
+import com.domwires.ext.service.net.server.socket.ISocketServerService;
+import com.domwires.ext.service.net.server.socket.SocketServerServiceMessageType;
 import js.node.http.ServerResponse;
 import js.node.net.Socket;
 import utest.Assert;
@@ -57,7 +57,7 @@ class ClientServerServiceTest extends Test
         });
     }
 
-    @:timeout(50000)
+    @:timeout(5000)
     public function teardown(async:Async):Void
     {
         var complete:Void -> Void = () -> {
@@ -171,7 +171,7 @@ class ClientServerServiceTest extends Test
         client.send(request, RequestType.Get);
     }
 
-    @:timeout(100000)
+    @:timeout(1000)
     public function testHandlerTcpConnectServer(async:Async):Void
     {
         socketServer.addMessageListener(SocketServerServiceMessageType.ClientDisconnected, m -> {
@@ -210,7 +210,7 @@ class ClientServerServiceTest extends Test
         client.connect();
     }
 
-    @:timeout(10000)
+    @:timeout(1000)
     public function testHandlerTcpRequestResponse(async:Async):Void
     {
         client = factory.getInstance(INetClientService);

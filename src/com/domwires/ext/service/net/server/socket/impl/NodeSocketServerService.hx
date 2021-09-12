@@ -10,7 +10,7 @@ import js.node.net.Server;
 import js.node.net.Socket;
 import js.node.Net;
 
-class NodeSocketServerService extends AbstractService implements ISocketServerService
+class NodeSocketServerService extends AbstractNetServerService implements ISocketServerService
 {
     @Inject("ISocketServerService_enabled")
     @Optional
@@ -22,15 +22,7 @@ class NodeSocketServerService extends AbstractService implements ISocketServerSe
     @Inject("ISocketServerService_host")
     private var _host:String;
 
-    public var requestData(get, never):RequestResponse;
-    private var _requestData:RequestResponse;
-
     private var server:js.node.net.Server;
-
-    public var isOpened(get, never):Bool;
-    private var _isOpened:Bool = false;
-
-    private var reqMap:Map<String, RequestResponse> = [];
 
     public var connectionsCount(get, never):Int;
     private var _connectionsCount:Int = 0;
@@ -50,7 +42,7 @@ class NodeSocketServerService extends AbstractService implements ISocketServerSe
         initResult(__enabled);
     }
 
-    public function close():INetServerService
+    override public function close():INetServerService
     {
         if (_isOpened)
         {
@@ -63,21 +55,7 @@ class NodeSocketServerService extends AbstractService implements ISocketServerSe
         return this;
     }
 
-    override public function dispose():Void
-    {
-        close();
-
-        super.dispose();
-    }
-
-    override private function initSuccess():Void
-    {
-        super.initSuccess();
-
-        createServer();
-    }
-
-    private function createServer():Void
+    override private function createServer():Void
     {
         server = Net.createServer((socket:Socket) -> {
             handleClientConnected(socket);
@@ -259,41 +237,6 @@ class NodeSocketServerService extends AbstractService implements ISocketServerSe
         return this;
     }
 
-    public function startListen(request:RequestResponse):INetServerService
-    {
-        if (!checkEnabled())
-        {
-            return this;
-        }
-
-        if (!reqMap.exists(request.id))
-        {
-            reqMap.set(request.id, request);
-        }
-
-        return this;
-    }
-
-    public function stopListen(request:RequestResponse):INetServerService
-    {
-        if (!checkEnabled())
-        {
-            return this;
-        }
-
-        if (reqMap.exists(request.id))
-        {
-            reqMap.remove(request.id);
-        }
-
-        return this;
-    }
-
-    private function get_requestData():RequestResponse
-    {
-        return _requestData;
-    }
-
     private function get_connectionsCount():Int
     {
         return _connectionsCount;
@@ -309,11 +252,6 @@ class NodeSocketServerService extends AbstractService implements ISocketServerSe
         }
     }
 
-    private function get_isOpened():Bool
-    {
-        return _isOpened;
-    }
-
     private function get_disconnectedClientId():Int
     {
         return _disconnectedClientId;
@@ -322,18 +260,6 @@ class NodeSocketServerService extends AbstractService implements ISocketServerSe
     private function get_connectedClientId():Int
     {
         return _connectedClientId;
-    }
-
-    private function checkIsOpened():Bool
-    {
-        if (!_isOpened)
-        {
-            trace("Server is not opened!");
-
-            return false;
-        }
-
-        return true;
     }
 }
 

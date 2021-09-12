@@ -1,4 +1,5 @@
 package com.domwires.ext.service.net;
+import com.domwires.ext.service.net.client.RequestType;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.core.mvc.message.IMessage;
@@ -22,7 +23,7 @@ class AuthStackTest extends Test
     private var database:Db;
     private var client:INetClientService;
 
-    @:timeout(200000)
+    @:timeout(2000)
     public function setupClass(async:Async):Void
     {
         var factory:IAppFactory = new AppFactory();
@@ -50,13 +51,15 @@ class AuthStackTest extends Test
         server = factory.getInstance(ISocketServerService);
         client = factory.getInstance(INetClientService);
 
-        server.addMessageListener(NetServerServiceMessageType.Opened, m -> database.connect());
+        server.addMessageListener(NetServerServiceMessageType.Opened, m -> {
+            server.startListen({id: "reg"});
+            server.startListen({id: "login"});
+            server.startListen({id: "message"});
+            
+            database.connect();
+        });
         database.addMessageListener(DataBaseServiceMessageType.Connected, m -> database.createTable("users", ["email"]));
         database.addMessageListener(DataBaseServiceMessageType.CreateTableResult, m -> async.done());
-
-        server.startListen({id: "reg"});
-        server.startListen({id: "login"});
-        server.startListen({id: "message"});
     }
 
     public function setup():Void

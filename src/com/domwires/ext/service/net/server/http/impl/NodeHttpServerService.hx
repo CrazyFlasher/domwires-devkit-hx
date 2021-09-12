@@ -10,7 +10,7 @@ import js.node.net.Socket;
 import js.node.url.URL;
 import js.node.url.URLSearchParams;
 
-class NodeHttpServerService extends AbstractService implements IHttpServerService
+class NodeHttpServerService extends AbstractNetServerService implements IHttpServerService
 {
     @Inject("IHttpServerService_enabled")
     @Optional
@@ -22,24 +22,16 @@ class NodeHttpServerService extends AbstractService implements IHttpServerServic
     @Inject("IHttpServerService_host")
     private var _host:String;
 
-    public var requestData(get, never):RequestResponse;
-    private var _requestData:RequestResponse;
-
     private var queryParams:URLSearchParams;
 
     private var server:js.node.http.Server;
-
-    public var isOpened(get, never):Bool;
-    private var _isOpened:Bool = false;
-
-    private var reqMap:Map<String, RequestResponse> = [];
 
     override private function init():Void
     {
         initResult(__enabled);
     }
 
-    public function close():IHttpServerService
+    override public function close():IHttpServerService
     {
         if (_isOpened)
         {
@@ -52,21 +44,7 @@ class NodeHttpServerService extends AbstractService implements IHttpServerServic
         return this;
     }
 
-    override public function dispose():Void
-    {
-        close();
-
-        super.dispose();
-    }
-
-    override private function initSuccess():Void
-    {
-        super.initSuccess();
-
-        createServer();
-    }
-
-    private function createServer():Void
+    override private function createServer():Void
     {
         server = Http.createServer((message:IncomingMessage, response:ServerResponse) -> {
             var isHttps:Bool = message.connection.encrypted;
@@ -124,64 +102,10 @@ class NodeHttpServerService extends AbstractService implements IHttpServerServic
         response.end();
     }
 
-    public function startListen(request:RequestResponse):IHttpServerService
-    {
-        if (!checkIsOpened())
-        {
-            return this;
-        }
-
-        if (!reqMap.exists(request.id))
-        {
-            reqMap.set(request.id, request);
-        }
-
-        return this;
-    }
-
-    public function stopListen(request:RequestResponse):IHttpServerService
-    {
-        if (!checkIsOpened())
-        {
-            return this;
-        }
-
-        if (reqMap.exists(request.id))
-        {
-            reqMap.remove(request.id);
-        }
-
-        return this;
-    }
-
     public function getQueryParam(id:String):String
     {
         if (queryParams == null) return null;
 
         return queryParams.get(id);
-    }
-
-    private function get_requestData():RequestResponse
-    {
-        return _requestData;
-    }
-
-    private function get_isOpened():Bool
-    {
-        return _isOpened;
-    }
-
-    private function checkIsOpened():Bool
-    {
-        if (!checkEnabled()) return false;
-        
-        if (!_isOpened)
-        {
-            trace("Server is not opened!");
-
-            return false;
-        }
-
-        return true;
     }
 }

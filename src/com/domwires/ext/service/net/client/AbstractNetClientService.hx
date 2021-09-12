@@ -1,4 +1,4 @@
-package com.domwires.ext.service.net.client.impl;
+package com.domwires.ext.service.net.client;
 
 import haxe.Json;
 
