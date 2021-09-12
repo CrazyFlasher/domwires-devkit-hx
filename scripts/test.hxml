@@ -4,6 +4,7 @@
 -lib hexinject
 -lib dox
 -lib hxnodejs
+-lib hxWebSockets
 -lib hxnodelibs
 -lib DomWires
 -lib test-adapter
@@ -15,4 +16,4 @@
 -D no-deprecation-warnings
 -debug
 -D UTEST_PRINT_TESTS
-# -D UTEST_PATTERN=AuthStackTest
+# -D UTEST_PATTERN=testHandlerTcpRequestResponse

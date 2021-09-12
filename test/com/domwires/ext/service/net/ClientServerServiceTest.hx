@@ -1,5 +1,7 @@
 package com.domwires.ext.service.net;
 
+import haxe.Timer;
+import com.domwires.ext.service.net.client.impl.CPNetClientService;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.client.impl.NodeNetClientService;
@@ -48,7 +50,7 @@ class ClientServerServiceTest extends Test
         server.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
     }
 
-    @:timeout(5000)
+    @:timeout(50000)
     public function teardown(async:Async):Void
     {
         var complete:Void -> Void = () -> {
@@ -145,7 +147,7 @@ class ClientServerServiceTest extends Test
         client.send(request, RequestType.Get);
     }
 
-    @:timeout(1000)
+    @:timeout(100000)
     public function testHandlerTcpConnectServer(async:Async):Void
     {
         server.addMessageListener(NetServerServiceMessageType.ClientDisconnected, m -> {

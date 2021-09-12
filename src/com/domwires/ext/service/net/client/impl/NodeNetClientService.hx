@@ -9,43 +9,11 @@ import js.node.http.ClientRequest;
 import js.node.http.Method;
 import js.node.Http.HttpRequestOptions;
 
-class NodeNetClientService extends AbstractService implements INetClientService
+class NodeNetClientService extends AbstractNetClientService implements INetClientService
 {
-    @Inject("INetClientService_enabled")
-    @Optional
-    private var __enabled:Bool;
-
-    @Inject("INetClientService_httpPort")
-    private var _httpPort:Int;
-
-    @Inject("INetClientService_tcpPort")
-    private var _tcpPort:Int;
-
-    @Inject("INetClientService_httpHost")
-    private var _httpHost:String;
-
-    @Inject("INetClientService_tcpHost")
-    private var _tcpHost:String;
-
     private var client:Socket;
 
-    public var responseData(get, never):RequestResponse;
-    private var _responseData:RequestResponse;
-
-    public var isConnected(get, never):Bool;
-    private var _isConnected:Bool = false;
-
-    override private function init():Void
-    {
-        initResult(__enabled);
-    }
-
-    private function isHttp(type:RequestType):Bool
-    {
-        return type != RequestType.Tcp;
-    }
-
-    public function connect():INetClientService
+    override public function connect():INetClientService
     {
         if (!checkEnabled())
         {
@@ -75,7 +43,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
                 received.push(chunk);
                 while (!received.isFinished())
                 {
-                    var data:String = received.handleData();
+                    var data:String = received.getMessage();
                     var resData:RequestResponse = validateResponse(data);
 
                     _responseData = {id: resData.id, data: resData.data};
@@ -97,7 +65,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
         return this;
     }
 
-    public function disconnect():INetClientService
+    override public function disconnect():INetClientService
     {
         if (!checkEnabled())
         {
@@ -116,25 +84,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
         return this;
     }
 
-    public function send(request:RequestResponse, type:RequestType):INetClientService
-    {
-        if (!checkEnabled())
-        {
-            return this;
-        }
-
-        if (isHttp(type))
-        {
-            sendHttpRequest(request, type);
-        } else
-        {
-            sendTcpRequest(request);
-        }
-
-        return this;
-    }
-
-    private function sendHttpRequest(request:RequestResponse, type:RequestType):INetClientService
+    override private function sendHttpRequest(request:RequestResponse, type:RequestType):Void
     {
         var method:Method;
         if (type == RequestType.Post)
@@ -165,7 +115,7 @@ class NodeNetClientService extends AbstractService implements INetClientService
             message.on("end", () -> {
                 _responseData = {id: message.url, data: data};
 
-                handleHttpResponse(message);
+                handleHttpResponse(data);
 
                 dispatchMessage(NetClientServiceMessageType.HttpResponse);
             });
@@ -177,84 +127,10 @@ class NodeNetClientService extends AbstractService implements INetClientService
         }
         
         req.end();
-
-        return this;
     }
 
-    private function sendTcpRequest(request:RequestResponse):INetClientService
+    override private function sendTcpRequest(request:RequestResponse):Void
     {
-        if (!_isConnected)
-        {
-            throw haxe.io.Error.Custom("Cannot send TCP request! Not connected!");
-        }
-
-        var message:String = "";
-
-        if (request.data == null)
-        {
-            message = "{\"id\":\"" + request.id + "\"}";
-        } else
-        {
-            var json:Dynamic = {
-                id: request.id,
-                data: request.data
-            };
-            message = Json.stringify(json);
-        }
-
-        client.write(message + "\n");
-
-        return this;
+        client.write(messageToSend);
     }
-
-    private function validateResponse(data:String):RequestResponse
-    {
-        var resData:RequestResponse;
-
-        try
-        {
-            resData = Json.parse(data);
-        } catch (e:js.lib.Error)
-        {
-            throw haxe.io.Error.Custom("Response should be a JSON string: " + data);
-        }
-
-        if (resData.id == null)
-        {
-            throw haxe.io.Error.Custom("Response Json should contain \"id\" field!: " + data);
-        }
-
-        return resData;
-    }
-
-    private function handleConnect():Void
-    {
-
-    }
-
-    private function handleDisconnect():Void
-    {
-
-    }
-    
-    private function handleHttpResponse(message:IncomingMessage):Void
-    {
-
-    }
-
-    private function handleTcpResponse():Void
-    {
-
-    }
-
-    private function get_responseData():RequestResponse
-    {
-        return _responseData;
-    }
-
-    private function get_isConnected():Bool
-    {
-        return _isConnected;
-    }
-
 }
