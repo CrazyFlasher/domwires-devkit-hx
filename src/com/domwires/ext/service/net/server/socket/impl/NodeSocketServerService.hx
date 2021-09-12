@@ -1,53 +1,36 @@
-package com.domwires.ext.service.net.server.impl;
+package com.domwires.ext.service.net.server.socket.impl;
 
 import com.domwires.core.common.AbstractDisposable;
-import com.domwires.core.common.IDisposable;
-import com.domwires.core.factory.AppFactory;
-import haxe.Json;
-import com.domwires.ext.service.net.server.NetServerServiceMessageType;
 import com.domwires.ext.service.net.server.INetServerService;
+import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import haxe.Json;
 import js.lib.Error;
 import js.node.http.ClientRequest;
-import js.node.http.IncomingMessage;
-import js.node.http.ServerResponse;
-import js.node.Http;
 import js.node.net.Server;
 import js.node.net.Socket;
 import js.node.Net;
-import js.node.url.URL;
-import js.node.url.URLSearchParams;
 
-class NodeNetServerService extends AbstractService implements INetServerService
+class NodeSocketServerService extends AbstractService implements ISocketServerService
 {
-    @Inject("INetServerService_enabled")
+    @Inject("ISocketServerService_enabled")
     @Optional
     private var __enabled:Bool;
 
-    @Inject("INetServerService_httpPort")
-    private var _httpPort:Int;
+    @Inject("ISocketServerService_port")
+    private var _port:Int;
 
-    @Inject("INetServerService_tcpPort")
-    private var _tcpPort:Int;
-
-    @Inject("INetServerService_httpHost")
-    private var _httpHost:String;
-
-    @Inject("INetServerService_tcpHost")
-    private var _tcpHost:String;
+    @Inject("ISocketServerService_host")
+    private var _host:String;
 
     public var requestData(get, never):RequestResponse;
     private var _requestData:RequestResponse;
 
-    private var queryParams:URLSearchParams;
-
-    private var httpServer:js.node.http.Server;
-    private var tcpServer:js.node.net.Server;
+    private var server:js.node.net.Server;
 
     public var isOpened(get, never):Bool;
     private var _isOpened:Bool = false;
 
-    private var httpReqMap:Map<String, RequestResponse> = [];
-    private var tcpReqMap:Map<String, RequestResponse> = [];
+    private var reqMap:Map<String, RequestResponse> = [];
 
     public var connectionsCount(get, never):Int;
     private var _connectionsCount:Int = 0;
@@ -64,11 +47,6 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     override private function init():Void
     {
-        if (factory == null)
-        {
-            factory = new AppFactory();
-        }
-
         initResult(__enabled);
     }
 
@@ -76,11 +54,9 @@ class NodeNetServerService extends AbstractService implements INetServerService
     {
         if (_isOpened)
         {
-            httpServer.close((?error:Error) -> {
-                tcpServer.close((?error:Error) -> {
-                    _isOpened = false;
-                    dispatchMessage(NetServerServiceMessageType.Closed);
-                });
+            server.close((?error:Error) -> {
+                _isOpened = false;
+                dispatchMessage(NetServerServiceMessageType.Closed);
             });
         }
 
@@ -98,57 +74,15 @@ class NodeNetServerService extends AbstractService implements INetServerService
     {
         super.initSuccess();
 
-        createServerHttp();
+        createServer();
     }
 
-    private function createServerHttp():Void
+    private function createServer():Void
     {
-        httpServer = Http.createServer((message:IncomingMessage, response:ServerResponse) -> {
-            var isHttps:Bool = message.connection.encrypted;
-            var requestUrl:URL = new URL(message.url, (isHttps ? "https" : "http") + "://" + _httpHost);
-            var req:RequestResponse = httpReqMap.get(requestUrl.pathname);
-            if (req != null)
-            {
-                var data:String = "";
-                message.on("error", (error:Error) -> {
-                    trace(error);
-                    response.statusCode = 400;
-                    response.end();
-                });
-                message.on("data", (chunk:String) -> data += chunk);
-                message.on("end", () -> {
-                    _requestData = {id: requestUrl.pathname, data: data};
-
-                    queryParams = requestUrl.searchParams;
-
-                    handleHttpRequest(message);
-
-                    dispatchMessage(NetServerServiceMessageType.GotHttpRequest);
-
-                    sendHttpResponse(response);
-
-                    dispatchMessage(NetServerServiceMessageType.SendHttpResponse);
-                });
-            } else
-            {
-                response.statusCode = 404;
-                response.end();
-            }
-        });
-
-        httpServer.listen(_httpPort, _httpHost, () -> {
-            trace("HTTP server created: " + _httpHost + ":" + _httpPort);
-
-            createServerTcp();
-        });
-    }
-
-    private function createServerTcp():Void
-    {
-        tcpServer = Net.createServer((socket:Socket) -> {
+        server = Net.createServer((socket:Socket) -> {
             handleClientConnected(socket);
             
-            dispatchMessage(NetServerServiceMessageType.ClientConnected);
+            dispatchMessage(SocketServerServiceMessageType.ClientConnected);
 
             var received:MessageBuffer = new MessageBuffer();
 
@@ -163,14 +97,14 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
                     if (reqData != null)
                     {
-                        var req:RequestResponse = tcpReqMap.get(reqData.id);
+                        var req:RequestResponse = reqMap.get(reqData.id);
                         if (req != null)
                         {
                             _requestData = {id: reqData.id, data: reqData.data};
 
-                            handleTcpRequest(untyped socket.id);
+                            handleRequest(untyped socket.id);
 
-                            dispatchMessage(NetServerServiceMessageType.GotTcpRequest);
+                            dispatchMessage(NetServerServiceMessageType.GotRequest);
                         } else
                         {
                             trace("Ignoring TCP request: " + reqData.id);
@@ -182,24 +116,25 @@ class NodeNetServerService extends AbstractService implements INetServerService
             socket.on(SocketEvent.End, () -> {
                 handleClientDisconnected(socket);
 
-                dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
+                dispatchMessage(SocketServerServiceMessageType.ClientDisconnected);
             });
 
             socket.on(SocketEvent.Error, (error:Error) -> {
                 trace(error);
 
+                handleClientDisconnected(socket);
                 handleSocketConnectionLost(socket);
 
-                dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
+                dispatchMessage(SocketServerServiceMessageType.ClientDisconnected);
             });
         });
 
-        tcpServer.on(SocketEvent.Error, (error:Error) -> {
+        server.on(SocketEvent.Error, (error:Error) -> {
             trace(error);
         });
 
-        tcpServer.listen(_tcpPort, _tcpHost, () -> {
-            trace("TCP server created: " + _tcpHost + ":" + _tcpPort);
+        server.listen(_port, _host, () -> {
+            trace("TCP server created: " + _host + ":" + _port);
 
             _isOpened = true;
 
@@ -209,7 +144,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
 
     private function handleSocketConnectionLost(socket:Socket):Void
     {
-        dispatchMessage(NetServerServiceMessageType.ClientDisconnected);
+
     }
 
     private function validateRequest(socket:Socket, data:String):RequestResponse
@@ -274,25 +209,11 @@ class NodeNetServerService extends AbstractService implements INetServerService
         trace("Client disconnected: id: " + clientId + "; Total clients: " + _connectionsCount);
     }
 
-    private function handleHttpRequest(message:IncomingMessage):Void
-    {
-        
-    }
-
-    private function sendHttpResponse(response:ServerResponse):Void
-    {
-        response.writeHead(200, {
-            "Content-Length": "0",
-            "Content-Type": "text/plain; charset=utf-8"
-        });
-        response.end();
-    }
-
-    private function handleTcpRequest(clientId:Int):Void
+    private function handleRequest(clientId:Int):Void
     {
     }
 
-    public function sendTcpResponse(clientId:Int, response:RequestResponse):INetServerService
+    public function sendResponse(clientId:Int, response:RequestResponse):ISocketServerService
     {
         if (!clientIdMap.exists(clientId))
         {
@@ -304,7 +225,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
         return this;
     }
 
-    public function disconnectClient(clientId:Int):INetServerService
+    public function disconnectClient(clientId:Int):ISocketServerService
     {
         if (!checkIsOpened())
         {
@@ -323,7 +244,7 @@ class NodeNetServerService extends AbstractService implements INetServerService
         return this;
     }
 
-    public function disconnectAllClients():INetServerService
+    public function disconnectAllClients():ISocketServerService
     {
         if (!checkIsOpened())
         {
@@ -338,89 +259,34 @@ class NodeNetServerService extends AbstractService implements INetServerService
         return this;
     }
 
-    public function startListen(request:RequestResponse, type:RequestType):INetServerService
+    public function startListen(request:RequestResponse):INetServerService
     {
         if (!checkEnabled())
         {
             return this;
         }
 
-        var map:Map<String, RequestResponse> = getReqMap(type);
-        if (!map.exists(request.id))
+        if (!reqMap.exists(request.id))
         {
-            map.set(request.id, request);
+            reqMap.set(request.id, request);
         }
 
         return this;
     }
 
-    public function stopListen(request:RequestResponse, type:RequestType):INetServerService
+    public function stopListen(request:RequestResponse):INetServerService
     {
         if (!checkEnabled())
         {
             return this;
         }
 
-        var map:Map<String, RequestResponse> = getReqMap(type);
-
-        if (map.exists(request.id))
+        if (reqMap.exists(request.id))
         {
-            map.remove(request.id);
+            reqMap.remove(request.id);
         }
 
         return this;
-    }
-
-    public function getQueryParam(id:String):String
-    {
-        if (queryParams == null) return null;
-
-        return queryParams.get(id);
-    }
-
-    public function getPort(type:ServerType):Int
-    {
-        if (type == ServerType.Http)
-        {
-            return _httpPort;
-        }
-
-        return _tcpPort;
-    }
-
-    public function getHost(type:ServerType):String
-    {
-        if (type == ServerType.Http)
-        {
-            return _httpHost;
-        }
-
-        return _tcpHost;
-    }
-
-    private function getReqMap(type:RequestType):Map<String, RequestResponse>
-    {
-        if (isHttp(type))
-        {
-            return httpReqMap;
-        }
-
-        return tcpReqMap;
-    }
-
-    private function isHttp(type:RequestType):Bool
-    {
-        return type != RequestType.Tcp;
-    }
-
-    private function isListeningRequest(id:String, type:RequestType):Bool
-    {
-        return getReqById(id, type) != null;
-    }
-
-    private function getReqById(id:String, type:RequestType):RequestResponse
-    {
-        return getReqMap(type).get(id);
     }
 
     private function get_requestData():RequestResponse

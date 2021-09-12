@@ -1,24 +1,24 @@
 package com.domwires.ext.service.net;
-import com.domwires.core.mvc.message.IMessage;
-import js.node.net.Socket;
-import com.domwires.ext.service.net.db.impl.NodeMongoDatabaseService;
-import com.domwires.ext.service.net.client.impl.NodeNetClientService;
-import com.domwires.ext.service.net.server.impl.NodeNetServerService;
-import com.domwires.ext.service.net.client.NetClientServiceMessageType;
-import com.domwires.ext.service.net.db.DataBaseServiceMessageType;
-import com.domwires.ext.service.net.server.NetServerServiceMessageType;
-import utest.Async;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
+import com.domwires.core.mvc.message.IMessage;
+import com.domwires.ext.service.net.client.impl.NodeNetClientService;
 import com.domwires.ext.service.net.client.INetClientService;
+import com.domwires.ext.service.net.client.NetClientServiceMessageType;
+import com.domwires.ext.service.net.db.DataBaseServiceMessageType;
 import com.domwires.ext.service.net.db.IDataBaseService;
-import com.domwires.ext.service.net.server.INetServerService;
+import com.domwires.ext.service.net.db.impl.NodeMongoDatabaseService;
+import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import com.domwires.ext.service.net.server.socket.impl.NodeSocketServerService.SocketClient;
+import com.domwires.ext.service.net.server.socket.impl.NodeSocketServerService;
+import com.domwires.ext.service.net.server.socket.ISocketServerService;
 import utest.Assert;
+import utest.Async;
 import utest.Test;
 
 class AuthStackTest extends Test
 {
-    private var server:INetServerService;
+    private var server:ISocketServerService;
     private var database:Db;
     private var client:INetClientService;
 
@@ -28,15 +28,13 @@ class AuthStackTest extends Test
         var factory:IAppFactory = new AppFactory();
 
         factory.mapToValue(IAppFactory, factory);
-        factory.mapToType(INetServerService, Server);
+        factory.mapToType(ISocketServerService, Server);
         factory.mapToType(INetClientService, Client);
         factory.mapToType(IDataBaseService, Db);
         factory.mapToType(SocketClient, AuthSocketClient);
 
-        factory.mapClassNameToValue("String", "127.0.0.1", "INetServerService_httpHost");
-        factory.mapClassNameToValue("String", "127.0.0.1", "INetServerService_tcpHost");
-        factory.mapClassNameToValue("Int", 3000, "INetServerService_httpPort");
-        factory.mapClassNameToValue("Int", 3001, "INetServerService_tcpPort");
+        factory.mapClassNameToValue("String", "127.0.0.1", "ISocketServerService_host");
+        factory.mapClassNameToValue("Int", 3001, "ISocketServerService_port");
 
         factory.mapClassNameToValue("String", "127.0.0.1", "INetClientService_httpHost");
         factory.mapClassNameToValue("String", "127.0.0.1", "INetClientService_tcpHost");
@@ -49,16 +47,16 @@ class AuthStackTest extends Test
         database = cast factory.getInstance(IDataBaseService);
         factory.mapToValue(Db, database, "db");
 
-        server = factory.getInstance(INetServerService);
+        server = factory.getInstance(ISocketServerService);
         client = factory.getInstance(INetClientService);
 
         server.addMessageListener(NetServerServiceMessageType.Opened, m -> database.connect());
         database.addMessageListener(DataBaseServiceMessageType.Connected, m -> database.createTable("users", ["email"]));
         database.addMessageListener(DataBaseServiceMessageType.CreateTableResult, m -> async.done());
 
-        server.startListen({id: "reg"}, RequestType.Tcp);
-        server.startListen({id: "login"}, RequestType.Tcp);
-        server.startListen({id: "message"}, RequestType.Tcp);
+        server.startListen({id: "reg"});
+        server.startListen({id: "login"});
+        server.startListen({id: "message"});
     }
 
     public function setup():Void
@@ -187,23 +185,23 @@ class AuthStackTest extends Test
     
 }
 
-class Server extends NodeNetServerService
+class Server extends NodeSocketServerService
 {
     @Inject("db")
     private var db:Db;
 
-    override private function handleTcpRequest(clientId:Int):Void
+    override private function handleRequest(clientId:Int):Void
     {
-        super.handleTcpRequest(clientId);
+        super.handleRequest(clientId);
 
         if (_requestData.id == "reg")
         {
             var handleInsertResult:IMessage -> Void = (m:IMessage) -> {
-                sendTcpResponse(clientId, {id: "reg", data: "OK"});
+                sendResponse(clientId, {id: "reg", data: "OK"});
             };
 
             var handleInsertError:IMessage -> Void = (m:IMessage) -> {
-                sendTcpResponse(clientId, {id: "reg", data: "ERROR"});
+                sendResponse(clientId, {id: "reg", data: "ERROR"});
             };
 
             db.addMessageListener(DataBaseServiceMessageType.InsertResult, handleInsertResult);
@@ -211,7 +209,7 @@ class Server extends NodeNetServerService
 
             if (_requestData.data.password == null)
             {
-                sendTcpResponse(clientId, {id: "reg", data: "ERROR"});
+                sendResponse(clientId, {id: "reg", data: "ERROR"});
             } else
             {
                 db.insert("users", [{email: _requestData.data.email, password: _requestData.data.password}]);
@@ -225,15 +223,15 @@ class Server extends NodeNetServerService
                 {
                     cast (clientIdMap.get(clientId), AuthSocketClient).isAuthorized = true;
 
-                    sendTcpResponse(clientId, {id: "login", data: "OK"});
+                    sendResponse(clientId, {id: "login", data: "OK"});
                 } else
                 {
-                    sendTcpResponse(clientId, {id: "login", data: "ERROR"});
+                    sendResponse(clientId, {id: "login", data: "ERROR"});
                 }
             };
 
             var handleFindError:IMessage -> Void = (m:IMessage) -> {
-                sendTcpResponse(clientId, {id: "login", data: "ERROR"});
+                sendResponse(clientId, {id: "login", data: "ERROR"});
             };
 
             db.addMessageListener(DataBaseServiceMessageType.FindResult, handleFindResult);
@@ -245,10 +243,10 @@ class Server extends NodeNetServerService
         {
             if (!cast (clientIdMap.get(clientId), AuthSocketClient).isAuthorized)
             {
-                sendTcpResponse(clientId, {id: "message", data: "ERROR"});
+                sendResponse(clientId, {id: "message", data: "ERROR"});
             } else
             {
-                sendTcpResponse(clientId, {id: "message", data: "OK"});
+                sendResponse(clientId, {id: "message", data: "OK"});
             }
         }
     }

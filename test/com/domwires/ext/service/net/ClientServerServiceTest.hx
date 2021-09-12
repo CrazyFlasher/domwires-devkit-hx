@@ -1,13 +1,15 @@
 package com.domwires.ext.service.net;
 
-import haxe.Timer;
-import com.domwires.ext.service.net.client.impl.CPNetClientService;
+import com.domwires.ext.service.net.server.socket.SocketServerServiceMessageType;
+import com.domwires.ext.service.net.server.socket.impl.NodeSocketServerService;
+import com.domwires.ext.service.net.server.http.impl.NodeHttpServerService;
+import com.domwires.ext.service.net.server.socket.ISocketServerService;
+import com.domwires.ext.service.net.server.http.IHttpServerService;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.client.impl.NodeNetClientService;
 import com.domwires.ext.service.net.client.INetClientService;
 import com.domwires.ext.service.net.client.NetClientServiceMessageType;
-import com.domwires.ext.service.net.server.impl.NodeNetServerService;
 import com.domwires.ext.service.net.server.INetServerService;
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
 import js.node.http.ServerResponse;
@@ -19,7 +21,8 @@ import utest.Test;
 class ClientServerServiceTest extends Test
 {
     private var factory:IAppFactory;
-    private var server:INetServerService;
+    private var httpServer:IHttpServerService;
+    private var socketServer:ISocketServerService;
     private var client:INetClientService;
 
     public function setupClass():Void
@@ -33,52 +36,73 @@ class ClientServerServiceTest extends Test
     {
         factory = new AppFactory();
 
-        factory.mapToType(INetServerService, DummyServer);
+        factory.mapToType(IHttpServerService, DummyHttpServer);
+        factory.mapToType(ISocketServerService, DummySocketServer);
         factory.mapToType(INetClientService, DummyClient);
 
-        factory.mapClassNameToValue("String", "127.0.0.1", "INetServerService_httpHost");
-        factory.mapClassNameToValue("String", "127.0.0.1", "INetServerService_tcpHost");
-        factory.mapClassNameToValue("Int", 3000, "INetServerService_httpPort");
-        factory.mapClassNameToValue("Int", 3001, "INetServerService_tcpPort");
+        factory.mapClassNameToValue("String", "127.0.0.1", "IHttpServerService_host");
+        factory.mapClassNameToValue("String", "127.0.0.1", "ISocketServerService_host");
+        factory.mapClassNameToValue("Int", 3000, "IHttpServerService_port");
+        factory.mapClassNameToValue("Int", 3001, "ISocketServerService_port");
 
         factory.mapClassNameToValue("String", "127.0.0.1", "INetClientService_httpHost");
         factory.mapClassNameToValue("String", "127.0.0.1", "INetClientService_tcpHost");
         factory.mapClassNameToValue("Int", 3000, "INetClientService_httpPort");
         factory.mapClassNameToValue("Int", 3001, "INetClientService_tcpPort");
 
-        server = factory.getInstance(INetServerService);
-        server.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
+        httpServer = factory.getInstance(IHttpServerService);
+        httpServer.addMessageListener(NetServerServiceMessageType.Opened, m -> {
+            socketServer = factory.getInstance(ISocketServerService);
+            socketServer.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
+        });
     }
 
     @:timeout(50000)
     public function teardown(async:Async):Void
     {
         var complete:Void -> Void = () -> {
-            server.dispose();
+            httpServer.dispose();
+            socketServer.dispose();
             async.done();
         };
 
-        server.addMessageListener(NetServerServiceMessageType.Closed, m -> complete());
+        var closeSocketServer:Void -> Void = () -> {
+            if (socketServer.isOpened)
+            {
+                socketServer.addMessageListener(NetServerServiceMessageType.Closed, m -> complete());
+                socketServer.close();
+            } else
+            {
+                complete();
+            }
+        };
 
-        if (server.isOpened)
+        if (httpServer.isOpened)
         {
-            server.close();
+            httpServer.addMessageListener(NetServerServiceMessageType.Closed, m -> closeSocketServer());
+            httpServer.close();
         } else
         {
-            complete();
+            closeSocketServer();
         }
     }
 
     @:timeout(1000)
     public function testClose(async:Async):Void
     {
-        server.addMessageListener(NetServerServiceMessageType.Closed, m -> {
-            Assert.isFalse(server.isOpened);
+        httpServer.addMessageListener(NetServerServiceMessageType.Closed, m -> {
+            socketServer.addMessageListener(NetServerServiceMessageType.Closed, m -> {
+                Assert.isFalse(socketServer.isOpened);
 
-            async.done();
+                async.done();
+            });
+
+            Assert.isFalse(httpServer.isOpened);
+
+            socketServer.close();
         });
 
-        server.close();
+        httpServer.close();
     }
 
     @:timeout(1000)
@@ -89,9 +113,9 @@ class ClientServerServiceTest extends Test
             data: "Dummy request"
         };
 
-        server.startListen({id: "/test"}, RequestType.Post);
-        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
-            Assert.equals(request.data, server.requestData.data);
+        httpServer.startListen({id: "/test"});
+        httpServer.addMessageListener(NetServerServiceMessageType.GotRequest, m -> {
+            Assert.equals(request.data, httpServer.requestData.data);
         });
 
         client = factory.getInstance(INetClientService);
@@ -111,9 +135,9 @@ class ClientServerServiceTest extends Test
             data: "{\"data\":\"Dummy request\"}"
         };
 
-        server.startListen({id: "/test"}, RequestType.Get);
-        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
-            Assert.equals(request.data, server.requestData.data);
+        httpServer.startListen({id: "/test"});
+        httpServer.addMessageListener(NetServerServiceMessageType.GotRequest, m -> {
+            Assert.equals(request.data, httpServer.requestData.data);
         });
 
         client = factory.getInstance(INetClientService);
@@ -132,10 +156,10 @@ class ClientServerServiceTest extends Test
             id: "test?param_1=preved&param_2=boga"
         };
 
-        server.startListen({id: "/test"}, RequestType.Get);
-        server.addMessageListener(NetServerServiceMessageType.GotHttpRequest, m -> {
-            Assert.equals(server.getQueryParam("param_1"), "preved");
-            Assert.equals(server.getQueryParam("param_2"), "boga");
+        httpServer.startListen({id: "/test"});
+        httpServer.addMessageListener(NetServerServiceMessageType.GotRequest, m -> {
+            Assert.equals(httpServer.getQueryParam("param_1"), "preved");
+            Assert.equals(httpServer.getQueryParam("param_2"), "boga");
         });
 
         client = factory.getInstance(INetClientService);
@@ -150,15 +174,15 @@ class ClientServerServiceTest extends Test
     @:timeout(100000)
     public function testHandlerTcpConnectServer(async:Async):Void
     {
-        server.addMessageListener(NetServerServiceMessageType.ClientDisconnected, m -> {
-            Assert.equals(0, server.connectionsCount);
+        socketServer.addMessageListener(SocketServerServiceMessageType.ClientDisconnected, m -> {
+            Assert.equals(0, socketServer.connectionsCount);
 
             async.done();
         });
-        server.addMessageListener(NetServerServiceMessageType.ClientConnected, m -> {
-            Assert.equals(1, server.connectionsCount);
+        socketServer.addMessageListener(SocketServerServiceMessageType.ClientConnected, m -> {
+            Assert.equals(1, socketServer.connectionsCount);
 
-            server.disconnectClient(server.connectedClientId);
+            socketServer.disconnectClient(socketServer.connectedClientId);
         });
 
         client = factory.getInstance(INetClientService);
@@ -213,13 +237,13 @@ class ClientServerServiceTest extends Test
             async.done();
         });
 
-        server.addMessageListener(NetServerServiceMessageType.GotTcpRequest, m -> {
-            Assert.equals("Anton", server.requestData.data.people[0].firstName);
+        socketServer.addMessageListener(NetServerServiceMessageType.GotRequest, m -> {
+            Assert.equals("Anton", socketServer.requestData.data.people[0].firstName);
 
-            server.sendTcpResponse(cast (server, DummyServer).getClientId(), {id: "test", data: "Preved"});
+            socketServer.sendResponse(cast (socketServer, DummySocketServer).getClientId(), {id: "test", data: "Preved"});
         });
 
-        server.startListen({id: "test"}, RequestType.Tcp);
+        socketServer.startListen({id: "test"});
         client.connect();
     }
 }
@@ -229,11 +253,9 @@ class DummyClient extends NodeNetClientService
 
 }
 
-class DummyServer extends NodeNetServerService
+class DummyHttpServer extends NodeHttpServerService
 {
-    private var testClientId:Int;
-
-    override private function sendHttpResponse(response:ServerResponse):Void
+    override private function sendResponse(response:ServerResponse):Void
     {
         if (requestData.id == "/test")
         {
@@ -249,6 +271,11 @@ class DummyServer extends NodeNetServerService
 
         response.end();
     }
+}
+
+class DummySocketServer extends NodeSocketServerService
+{
+    private var testClientId:Int;
 
     override private function handleClientConnected(socket:Socket):Void
     {

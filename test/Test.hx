@@ -8,7 +8,7 @@ class Test
         #if js
         untyped global.WebSocket = require("ws");
         #end
-        
+
         var runner:Runner = new Runner();
 
         runner.addCase(new typedeftest.ModelFromTypeDefTest());

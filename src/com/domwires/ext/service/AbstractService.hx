@@ -1,5 +1,6 @@
 package com.domwires.ext.service;
 
+import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.core.mvc.model.AbstractModel;
 import haxe.io.Error;
@@ -7,7 +8,9 @@ import haxe.io.Error;
 class AbstractService extends AbstractModel implements IService
 {
     @Inject @Optional
-    private var factory:IAppFactory;
+    private var _factory:IAppFactory;
+
+    public var factory(get, never):IAppFactory;
 
     public var enabled(get, never):Bool;
 
@@ -58,4 +61,15 @@ class AbstractService extends AbstractModel implements IService
     {
         return _enabled;
     }
+
+    private function get_factory():IAppFactory
+    {
+        if (_factory == null)
+        {
+            _factory = new AppFactory();
+        }
+
+        return _factory;
+    }
+
 }
