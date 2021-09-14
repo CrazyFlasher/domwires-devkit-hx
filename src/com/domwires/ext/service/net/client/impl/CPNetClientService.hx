@@ -39,7 +39,18 @@ class CPNetClientService extends AbstractNetClientService implements INetClientS
             dispatchMessage(NetClientServiceMessageType.Connected);
         };
 
-        client.onmessage = (data:Dynamic) -> {
+        client.onmessage = (message:Dynamic) -> {
+            var data:String = null;
+
+            if (message.type == "binary") 
+            {
+                // message.data.readAllAvailableBytes();
+                throw Error.NotImplemented;
+            } else
+            {
+                data = message.content;
+            }
+            
             var resData:RequestResponse = validateResponse(data);
 
             _responseData = {id: resData.id, data: resData.data};
@@ -77,6 +88,8 @@ class CPNetClientService extends AbstractNetClientService implements INetClientS
 
             return this;
         }
+
+        client.close();
 
         return this;
     }

@@ -1,13 +1,12 @@
 package com.domwires.ext.service.net.client.impl;
 
-import haxe.Json;
+import js.node.http.ClientRequest;
+import js.node.Http.HttpRequestOptions;
+import js.node.http.IncomingMessage;
+import js.node.http.Method;
+import js.node.Http;
 import js.node.net.Socket;
 import js.node.Net;
-import js.node.http.IncomingMessage;
-import js.node.Http;
-import js.node.http.ClientRequest;
-import js.node.http.Method;
-import js.node.Http.HttpRequestOptions;
 
 class NodeNetClientService extends AbstractNetClientService implements INetClientService
 {

@@ -1,5 +1,7 @@
 package com.domwires.ext.service.net;
 
+import com.domwires.ext.service.net.client.impl.CPNetClientService;
+import com.domwires.ext.service.net.server.socket.impl.WebSocketServerService;
 import com.domwires.ext.service.net.client.RequestType;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
@@ -50,10 +52,16 @@ class ClientServerServiceTest extends Test
         factory.mapClassNameToValue("Int", 3000, "INetClientService_httpPort");
         factory.mapClassNameToValue("Int", 3001, "INetClientService_tcpPort");
 
-        httpServer = factory.getInstance(IHttpServerService);
-        httpServer.addMessageListener(NetServerServiceMessageType.Opened, m -> {
-            socketServer = factory.getInstance(ISocketServerService);
-            socketServer.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
+        // httpServer = factory.getInstance(IHttpServerService);
+        // httpServer.addMessageListener(NetServerServiceMessageType.Opened, m -> {
+            // socketServer = factory.getInstance(ISocketServerService);
+            // socketServer.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
+        // });
+
+        socketServer = factory.getInstance(ISocketServerService);
+        socketServer.addMessageListener(NetServerServiceMessageType.Opened, m -> {
+            httpServer = factory.getInstance(IHttpServerService);
+            httpServer.addMessageListener(NetServerServiceMessageType.Opened, m -> async.done());
         });
     }
 
@@ -171,7 +179,7 @@ class ClientServerServiceTest extends Test
         client.send(request, RequestType.Get);
     }
 
-    @:timeout(1000)
+    @:timeout(10000000)
     public function testHandlerTcpConnectServer(async:Async):Void
     {
         socketServer.addMessageListener(SocketServerServiceMessageType.ClientDisconnected, m -> {
@@ -248,7 +256,7 @@ class ClientServerServiceTest extends Test
     }
 }
 
-class DummyClient extends NodeNetClientService
+class DummyClient extends CPNetClientService
 {
 
 }
@@ -273,15 +281,15 @@ class DummyHttpServer extends NodeHttpServerService
     }
 }
 
-class DummySocketServer extends NodeSocketServerService
+class DummySocketServer extends WebSocketServerService
 {
     private var testClientId:Int;
 
-    override private function handleClientConnected(socket:Socket):Void
+    override private function handleClientConnected(socket:WebSocketClient):Void
     {
         super.handleClientConnected(socket);
 
-        testClientId = untyped socket.id;
+        testClientId = socket.clientId;
     }
 
     public function getClientId():Int
