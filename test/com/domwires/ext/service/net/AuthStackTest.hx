@@ -1,4 +1,5 @@
 package com.domwires.ext.service.net;
+import com.domwires.ext.service.net.server.socket.impl.NodeWebSocketServerService;
 import com.domwires.ext.service.net.client.impl.WebSocketClientService;
 import com.domwires.ext.service.net.server.socket.impl.WebSocketServerService;
 import com.domwires.core.common.AbstractDisposable;
@@ -32,6 +33,14 @@ class AuthStackTest_WebSocket_NodeMongoDb_WebSocketClient extends AuthStackTest
     public function new()
     {
         super(WebSocketServerService, NodeMongoDatabaseService, WebSocketClientService);
+    }
+}
+
+class AuthStackTest_NodeWebSocket_NodeMongoDb_WebSocketClient extends AuthStackTest
+{
+    public function new()
+    {
+        super(NodeWebSocketServerService, NodeMongoDatabaseService, WebSocketClientService);
     }
 }
 
@@ -112,12 +121,12 @@ class AuthStackTest extends Test
     @:timeout(2000)
     public function teardownClass(async:Async):Void
     {
+        server.addMessageListener(NetServerServiceMessageType.Closed, m -> async.done());
+
         client.disconnect();
         database.dropTable("users");
         database.disconnect();
         server.close();
-
-        server.addMessageListener(NetServerServiceMessageType.Closed, m -> async.done());
     }
 
     @:timeout(2000)

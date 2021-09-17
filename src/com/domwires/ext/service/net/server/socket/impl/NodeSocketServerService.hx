@@ -103,8 +103,7 @@ final class NodeSocketServerService extends AbstractSocketServerService
         var clientData:Dynamic = (factory.hasMappingForClassName("Abstract<Dynamic>", "ISocketClient_data") ?
             factory.getInstanceWithClassName("Abstract<Dynamic>", "ISocketClient_data") : {});
 
-        clientIdMap.set(_connectedClientId, new NodeSocketClient(_connectedClientId,
-            clientData, socket));
+        clientIdMap.set(_connectedClientId, new NodeSocketClient(_connectedClientId, clientData, socket));
 
         trace("Client connected: id: " + _connectedClientId + "; Total clients: " + _connectionsCount);
     }

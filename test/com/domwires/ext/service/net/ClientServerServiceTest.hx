@@ -1,5 +1,6 @@
 package com.domwires.ext.service.net;
 
+import com.domwires.ext.service.net.server.socket.impl.NodeWebSocketServerService;
 import com.domwires.core.factory.AppFactory;
 import com.domwires.core.factory.IAppFactory;
 import com.domwires.ext.service.net.client.impl.NodeNetClientService;
@@ -31,6 +32,14 @@ class ClientServerTest_NodeHttp_WebSocket_WebSocketClient extends ClientServerSe
     public function new()
     {
         super(NodeHttpServerService, WebSocketServerService, WebSocketClientService);
+    }
+}
+
+class ClientServerTest_NodeHttp_NodeWebSocket_WebSocketClient extends ClientServerServiceTest
+{
+    public function new()
+    {
+        super(NodeHttpServerService, NodeWebSocketServerService, WebSocketClientService);
     }
 }
 
