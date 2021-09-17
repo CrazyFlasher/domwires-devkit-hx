@@ -21,10 +21,11 @@
   ],
   "classPath": "src",
   "dependencies": {
-    "DomWires": "1.0.0-alpha.15",
+    "DomWires": "1.0.0-alpha.16",
     "hxnodejs": "12.1.0",
     "hxnodelibs": "git:https://github.com/CrazyFlasher/hxnodelibs#c1b6389835cb307fd7b6a7ac8dd1b7760eff7c97",
     "tink_await": "git:https://github.com/haxetink/tink_await#c063e7803367335f86fc27b9e4ade8167df3eb2d",
+    "hxWebSockets": "git:https://github.com/ianharrigan/hxWebSockets.git#8f902efb715ff712cb8690535ec340655414541a",
     "hxp": "1.1.4",
     "utest": "1.13.2",
     "test-adapter": "1.2.10"

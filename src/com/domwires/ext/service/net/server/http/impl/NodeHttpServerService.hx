@@ -1,6 +1,7 @@
 package com.domwires.ext.service.net.server.http.impl;
 
 import com.domwires.ext.service.net.server.NetServerServiceMessageType;
+import haxe.DynamicAccess;
 import js.lib.Error;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
@@ -10,7 +11,7 @@ import js.node.net.Socket;
 import js.node.url.URL;
 import js.node.url.URLSearchParams;
 
-class NodeHttpServerService extends AbstractNetServerService implements IHttpServerService
+final class NodeHttpServerService extends AbstractNetServerService implements IHttpServerService
 {
     @Inject("IHttpServerService_enabled")
     @Optional
@@ -26,6 +27,8 @@ class NodeHttpServerService extends AbstractNetServerService implements IHttpSer
 
     private var server:js.node.http.Server;
 
+    private var pendingResponse:ServerResponse;
+
     override private function init():Void
     {
         initResult(__enabled);
@@ -35,6 +38,12 @@ class NodeHttpServerService extends AbstractNetServerService implements IHttpSer
     {
         if (_isOpened)
         {
+            if (pendingResponse != null)
+            {
+                pendingResponse.end();
+                pendingResponse = null;
+            }
+
             server.close((?error:Error) -> {
                 _isOpened = false;
                 dispatchMessage(NetServerServiceMessageType.Closed);
@@ -61,16 +70,11 @@ class NodeHttpServerService extends AbstractNetServerService implements IHttpSer
                 message.on("data", (chunk:String) -> data += chunk);
                 message.on("end", () -> {
                     _requestData = {id: requestUrl.pathname, data: data};
+                    pendingResponse = response;
 
                     queryParams = requestUrl.searchParams;
 
-                    handleRequest(message);
-
                     dispatchMessage(NetServerServiceMessageType.GotRequest);
-
-                    sendResponse(response);
-
-                    dispatchMessage(NetServerServiceMessageType.SendResponse);
                 });
             } else
             {
@@ -88,18 +92,39 @@ class NodeHttpServerService extends AbstractNetServerService implements IHttpSer
         });
     }
 
-    private function handleRequest(message:IncomingMessage):Void
+    public function sendResponse(response:RequestResponse, statusCode:Int = 200, ?customHeaders:DynamicAccess<String>):IHttpServerService
     {
-        
-    }
+        if (pendingResponse == null)
+        {
+            throw com.domwires.ext.Error.Custom("There are no pending response!");
+        }
 
-    private function sendResponse(response:ServerResponse):Void
-    {
-        response.writeHead(200, {
-            "Content-Length": "0",
-            "Content-Type": "text/plain; charset=utf-8"
-        });
-        response.end();
+        if (response.id != _requestData.id)
+        {
+            throw com.domwires.ext.Error.Custom("Response id should be the same as request id!");
+        }
+
+        var headers:DynamicAccess<String>;
+        if (customHeaders == null)
+        {
+            headers = {
+                "Content-Type": "text/plain; charset=utf-8"
+            };
+        } else
+        {
+            headers = customHeaders;
+        }
+
+        pendingResponse.writeHead(statusCode, headers);
+        if (response.data != null )
+        {
+            pendingResponse.write(response.data);
+        }
+        pendingResponse.end();
+
+        pendingResponse = null;
+
+        return this;
     }
 
     public function getQueryParam(id:String):String

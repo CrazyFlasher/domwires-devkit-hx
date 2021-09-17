@@ -25,6 +25,9 @@ class AbstractSocketServerService extends AbstractNetServerService implements IS
     public var disconnectedClientId(get, never):Int;
     private var _disconnectedClientId:Int;
 
+    public var requestFromClientId(get, never):Int;
+    private var _requestFromClientId:Int;
+
     private var clientIdMap:Map<Int, ISocketClient> = [];
 
     override private function init():Void
@@ -54,10 +57,6 @@ class AbstractSocketServerService extends AbstractNetServerService implements IS
         }
 
         return reqData;
-    }
-
-    private function handleRequest(clientId:Int):Void
-    {
     }
 
     public function sendResponse(clientId:Int, response:RequestResponse):ISocketServerService
@@ -106,6 +105,16 @@ class AbstractSocketServerService extends AbstractNetServerService implements IS
         return this;
     }
 
+    public function getClientDataById(clientId:Int):Dynamic
+    {
+        if (!checkIsOpened())
+        {
+            return null;
+        }
+
+        return clientIdMap.get(clientId).data;
+    }
+
     private function get_connectionsCount():Int
     {
         return _connectionsCount;
@@ -132,18 +141,37 @@ class AbstractSocketServerService extends AbstractNetServerService implements IS
     {
         return _connectedClientId;
     }
+
+    private function get_requestFromClientId():Int
+    {
+        return _requestFromClientId;
+    }
 }
 
 class AbstractSocketClient extends AbstractDisposable implements ISocketClient
 {
-    public var id(get, never):Int;
+    public var data(get, never):Dynamic;
+    private var _data:Dynamic;
 
-    @Inject("SocketClient_id")
+    public var id(get, never):Int;
     private var _id:Int;
+
+    public function new(id:Int, data:Dynamic)
+    {
+        super();
+
+        _id = id;
+        _data = data;
+    }
 
     private function get_id():Int
     {
         return _id;
+    }
+
+    private function get_data():Dynamic
+    {
+        return _data;
     }
 
     public function close():Void

@@ -3,7 +3,7 @@ package com.domwires.ext.service.net.server;
 enum NetServerServiceMessageType
 {
     GotRequest;
-    SendResponse;
+    SentResponse;
     Opened;
     Closed;
 }

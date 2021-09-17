@@ -9,7 +9,7 @@ import js.node.net.Server;
 import js.node.net.Socket;
 import js.node.Net;
 
-class NodeSocketServerService extends AbstractSocketServerService implements ISocketServerService
+final class NodeSocketServerService extends AbstractSocketServerService
 {
     private var server:js.node.net.Server;
 
@@ -51,9 +51,8 @@ class NodeSocketServerService extends AbstractSocketServerService implements ISo
                         var req:RequestResponse = reqMap.get(reqData.id);
                         if (req != null)
                         {
+                            _requestFromClientId = untyped socket.id;
                             _requestData = {id: reqData.id, data: reqData.data};
-
-                            handleRequest(untyped socket.id);
 
                             dispatchMessage(NetServerServiceMessageType.GotRequest);
                         } else
@@ -101,13 +100,11 @@ class NodeSocketServerService extends AbstractSocketServerService implements ISo
 
         untyped socket.id = _connectedClientId;
 
-        factory.mapClassNameToValue("js.node.net.Socket", socket, "SocketClient_socket");
-        factory.mapClassNameToValue("Int", _connectedClientId, "SocketClient_id");
+        var clientData:Dynamic = (factory.hasMappingForClassName("Abstract<Dynamic>", "ISocketClient_data") ?
+            factory.getInstanceWithClassName("Abstract<Dynamic>", "ISocketClient_data") : {});
 
-        clientIdMap.set(_connectedClientId, factory.getInstance(SocketClient));
-
-        factory.unmapClassName("Int", "SocketClient_id");
-        factory.unmap(js.node.net.Socket, "SocketClient_socket");
+        clientIdMap.set(_connectedClientId, new NodeSocketClient(_connectedClientId,
+            clientData, socket));
 
         trace("Client connected: id: " + _connectedClientId + "; Total clients: " + _connectionsCount);
     }
@@ -131,12 +128,17 @@ class NodeSocketServerService extends AbstractSocketServerService implements ISo
     }
 }
 
-class SocketClient extends AbstractSocketClient
+class NodeSocketClient extends AbstractSocketClient
 {
     public var socket(get, never):Socket;
-
-    @Inject("SocketClient_socket")
     private var _socket:Socket;
+
+    public function new(id:Int, data:Dynamic, socket:Socket)
+    {
+        super(id, data);
+
+        _socket = socket;
+    }
 
     private function get_socket():Socket
     {

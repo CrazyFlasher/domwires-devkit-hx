@@ -4,4 +4,6 @@ interface ISocketClient
 {
     function close():Void;
     function write(data:String):Void;
+
+    var data(get, never):Dynamic;
 }

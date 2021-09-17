@@ -7,7 +7,7 @@ import js.npm.mongodb.MongoClient;
 import js.npm.mongodb.MongoCollection;
 import js.npm.mongodb.MongoDatabase;
 
-@await class NodeMongoDatabaseService extends AbstractService implements IDataBaseService
+final class NodeMongoDatabaseService extends AbstractService implements IDataBaseService
 {
     @Inject("IDataBaseService_enabled")
     @Optional
@@ -26,8 +26,11 @@ import js.npm.mongodb.MongoDatabase;
 
     private var collectionMap:Map<String, MongoCollection> = [];
 
-    private var result:Dynamic;
-    private var error:MongoError;
+    public var result(get, never):Dynamic;
+    private var _result:Dynamic;
+
+    public var error(get, never):DataBaseError;
+    private var _error:DataBaseError;
 
     override private function init():Void
     {
@@ -121,8 +124,8 @@ import js.npm.mongodb.MongoDatabase;
     {
         if (!checkEnabled()) return false;
 
-        result = null;
-        error = null;
+        _result = null;
+        _error = null;
 
         return true;
     }
@@ -136,12 +139,10 @@ import js.npm.mongodb.MongoDatabase;
             collection.insertOne(itemList[0]) : collection.insertMany(itemList);
 
         promise.then(result -> {
-            this.result = result;
-            handleInsertResult();
+            this._result = result;
             dispatchMessage(DataBaseServiceMessageType.InsertResult);
-        }).catchError((error:MongoError) -> {
-            this.error = error;
-            handleInsertError();
+        }).catchError((error:DataBaseError) -> {
+            this._error = error;
             dispatchMessage(DataBaseServiceMessageType.InsertError);
         });
 
@@ -190,26 +191,14 @@ import js.npm.mongodb.MongoDatabase;
 
     private function updateSuccess(result:Dynamic):Void
     {
-        this.result = result;
-        handleUpdateResult();
+        this._result = result;
         dispatchMessage(DataBaseServiceMessageType.UpdateResult);
     }
 
-    private function updateError(error:MongoError):Void
+    private function updateError(error:DataBaseError):Void
     {
-        this.error = error;
-        handleUpdateError();
+        this._error = error;
         dispatchMessage(DataBaseServiceMessageType.UpdateError);
-    }
-
-    private function handleUpdateResult():Void
-    {
-
-    }
-
-    private function handleUpdateError():Void
-    {
-
     }
 
     public function delete(tableName:String, filter:Dynamic, single:Bool = true):IDataBaseService
@@ -234,26 +223,14 @@ import js.npm.mongodb.MongoDatabase;
 
     private function deleteSuccess(result:Dynamic):Void
     {
-        this.result = result;
-        handleDeleteResult();
+        this._result = result;
         dispatchMessage(DataBaseServiceMessageType.DeleteResult);
     }
 
-    private function deleteError(error:MongoError):Void
+    private function deleteError(error:DataBaseError):Void
     {
-        this.error = error;
-        handleDeleteError();
+        this._error = error;
         dispatchMessage(DataBaseServiceMessageType.DeleteError);
-    }
-
-    private function handleDeleteResult():Void
-    {
-
-    }
-
-    private function handleDeleteError():Void
-    {
-
     }
 
     public function createTable(name:String, ?uniqueIndexList:Array<String>):IDataBaseService
@@ -275,13 +252,13 @@ import js.npm.mongodb.MongoDatabase;
                 }
                 var promise:Promise<Dynamic> = resultCollection.createIndex(indexData, {unique: true});
                 promise.then(indexName -> {
-                    createTableSuccess(result);
+                    createTableSuccess(_result);
                 }).catchError(e -> {
                     trace("pizdec");
                 });
             } else
             {
-                createTableSuccess(result);
+                createTableSuccess(_result);
             }
         });
 
@@ -290,14 +267,8 @@ import js.npm.mongodb.MongoDatabase;
 
     private function createTableSuccess(result:Dynamic):Void
     {
-        this.result = result;
-        handleCreateTableResult();
+        this._result = result;
         dispatchMessage(DataBaseServiceMessageType.CreateTableResult);
-    }
-
-    private function handleCreateTableResult():Void
-    {
-
     }
 
     public function dropTable(tableName:String):IDataBaseService
@@ -310,35 +281,23 @@ import js.npm.mongodb.MongoDatabase;
         return this;
     }
 
-    private function dropTableResult(error:MongoError, result:Dynamic):Void
+    private function dropTableResult(error:DataBaseError, result:Dynamic):Void
     {
-        this.result = result;
-        this.error = error;
+        this._result = result;
+        this._error = error;
 
         if (result != null)
         {
-            this.result = result;
-            handleDropTableResult();
+            this._result = result;
             dispatchMessage(DataBaseServiceMessageType.DropTableResult);
         } else
         {
-            this.error = error;
-            handleDropTableError();
+            this._error = error;
             dispatchMessage(DataBaseServiceMessageType.DropTableError);
         }
     }
 
-    private function handleDropTableResult():Void
-    {
-
-    }
-
-    private function handleDropTableError():Void
-    {
-
-    }
-
-    private function findManyResult(error:MongoError, result:Dynamic):Void
+    private function findManyResult(error:DataBaseError, result:Dynamic):Void
     {
         if (result != null)
         {
@@ -351,36 +310,14 @@ import js.npm.mongodb.MongoDatabase;
 
     private function findSuccess(result:Dynamic):Void
     {
-        this.result = result;
-        handleFindResult();
+        this._result = result;
         dispatchMessage(DataBaseServiceMessageType.FindResult);
     }
 
-    private function findError(error:MongoError):Void
+    private function findError(error:DataBaseError):Void
     {
-        this.error = error;
-        handleFindError();
+        this._error = error;
         dispatchMessage(DataBaseServiceMessageType.FindError);
-    }
-
-    private function handleInsertResult():Void
-    {
-
-    }
-
-    private function handleInsertError():Void
-    {
-
-    }
-
-    private function handleFindResult():Void
-    {
-
-    }
-
-    private function handleFindError():Void
-    {
-
     }
 
     private function collection(name:String):MongoCollection
@@ -399,16 +336,14 @@ import js.npm.mongodb.MongoDatabase;
     {
         return _isConnected;
     }
-}
 
-typedef MongoError = {
-    code:Int,
-    errmsg:String,
-    message:String,
-    stack:String
-}
+    private function get_error():DataBaseError
+    {
+        return _error;
+    }
 
-enum abstract MongoErrorCode(Int)
-{
-    var Duplicate = 11000;
+    private function get_result():Dynamic
+    {
+        return _result;
+    }
 }

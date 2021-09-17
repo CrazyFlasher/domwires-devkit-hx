@@ -29,7 +29,7 @@ class WebSocketServerService extends AbstractSocketServerService implements ISoc
 
     override private function createServer():Void
     {
-        server = new WebSocketServer<WebSocketClient>(_host, _port);
+        server = new WebSocketServer<WebSocketClient>(_host, _port, 1000);
         Log.mask = Log.INFO | Log.DEBUG | Log.DATA;
 
         server.onClientAdded = (handler:WebSocketClient) -> {
@@ -48,7 +48,7 @@ class WebSocketServerService extends AbstractSocketServerService implements ISoc
                 dispatchMessage(SocketServerServiceMessageType.ClientDisconnected);
             });
             dispatcher.addMessageListener(SocketClientMessageType.Data, m -> {
-                var data:String = handler.data;
+                var data:String = handler.clientData;
                 _requestData = null;
 
                 var reqData:RequestResponse = validateRequest(handler.clientId, data);
@@ -58,9 +58,8 @@ class WebSocketServerService extends AbstractSocketServerService implements ISoc
                     var req:RequestResponse = reqMap.get(reqData.id);
                     if (req != null)
                     {
+                        _requestFromClientId = handler.clientId;
                         _requestData = {id: reqData.id, data: reqData.data};
-
-                        handleRequest(handler.clientId);
 
                         dispatchMessage(NetServerServiceMessageType.GotRequest);
                     } else
@@ -71,6 +70,8 @@ class WebSocketServerService extends AbstractSocketServerService implements ISoc
             });
 
             handler.dispatcher = dispatcher;
+             handler.externalData = (factory.hasMappingForClassName("Abstract<Dynamic>", "ISocketClient_data") ?
+                 factory.getInstanceWithClassName("Abstract<Dynamic>", "ISocketClient_data") : {});
         }
 
         server.start(() -> {
@@ -115,12 +116,15 @@ class WebSocketServerService extends AbstractSocketServerService implements ISoc
 class WebSocketClient extends WebSocketHandler implements ISocketClient
 {
     public var dispatcher:IMessageDispatcher;
+    public var externalData:Dynamic;
+
+    public var data(get, never):Dynamic;
 
     public var clientId(get, never):Int;
     private var _clientId:Int;
 
-    public var data(get, never):String;
-    private var _data:String;
+    public var clientData(get, never):String;
+    private var _clientData:String;
 
     public var error(get, never):Dynamic;
     private var _error:Dynamic;
@@ -143,7 +147,7 @@ class WebSocketClient extends WebSocketHandler implements ISocketClient
         {
             switch (message) {
                 case StrMessage(content):
-                    _data = content;
+                    _clientData = content;
                     dispatcher.dispatchMessage(SocketClientMessageType.Data);
 
                 case BytesMessage(content):
@@ -174,14 +178,19 @@ class WebSocketClient extends WebSocketHandler implements ISocketClient
         return _clientId;
     }
 
-    private function get_data():String
+    private function get_clientData():String
     {
-        return _data;
+        return _clientData;
     }
 
     private function get_error():Dynamic
     {
         return _error;
+    }
+
+    private function get_data():Dynamic
+    {
+        return externalData;
     }
 }
 

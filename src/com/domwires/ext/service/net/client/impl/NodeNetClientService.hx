@@ -8,7 +8,7 @@ import js.node.Http;
 import js.node.net.Socket;
 import js.node.Net;
 
-class NodeNetClientService extends AbstractNetClientService implements INetClientService
+final class NodeNetClientService extends AbstractNetClientService implements INetClientService
 {
     private var client:Socket;
 

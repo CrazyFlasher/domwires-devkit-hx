@@ -1,4 +1,4 @@
--main Test
+-main TestsLauncher
 -lib tink_await
 -lib utest
 -lib hexinject
@@ -16,4 +16,4 @@
 -D no-deprecation-warnings
 -debug
 -D UTEST_PRINT_TESTS
-# -D UTEST_PATTERN=testHandlerTcpRequestResponse
+# -D UTEST_PATTERN=testHandlerTcpConnectServer

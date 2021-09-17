@@ -1,5 +1,6 @@
 package com.domwires.ext.service.net;
 
+import com.domwires.ext.service.net.db.DataBaseError.DataBaseErrorCode;
 import com.domwires.core.mvc.message.IMessage;
 import utest.Async;
 import com.domwires.ext.service.net.db.DataBaseServiceMessageType;
@@ -15,14 +16,14 @@ class DataBaseServiceTest extends Test
     public static final TABLE_NAME:String = "testTable";
 
     private var factory:IAppFactory;
-    private var db:DummyDb;
+    private var db:IDataBaseService;
 
     @:timeout(5000)
     public function setup(async:Async):Void
     {
         factory = new AppFactory();
 
-        factory.mapToType(IDataBaseService, DummyDb);
+        factory.mapToType(IDataBaseService, NodeMongoDatabaseService);
 
         factory.mapClassNameToValue("String", "mongodb://127.0.0.1:27017", "IDataBaseService_uri");
         factory.mapClassNameToValue("String", "test_data_base", "IDataBaseService_dataBaseName");
@@ -68,7 +69,7 @@ class DataBaseServiceTest extends Test
     {
         db.addMessageListener(DataBaseServiceMessageType.DeleteResult, m -> {
             db.addMessageListener(DataBaseServiceMessageType.FindResult, m -> {
-                Assert.isNull(db.getResult());
+                Assert.isNull(db.result);
                 
                 async.done();
             });
@@ -91,7 +92,7 @@ class DataBaseServiceTest extends Test
         db.removeMessageListener(DataBaseServiceMessageType.FindResult, findCb_1);
         db.addMessageListener(DataBaseServiceMessageType.FindResult, findCb_2);
 
-        Assert.equals("Anton", db.getResult().firstName);
+        Assert.equals("Anton", db.result.firstName);
 
         db.update(TABLE_NAME, {firstName: "Anton"}, {lastName: "Pukallo"});
     }
@@ -100,7 +101,7 @@ class DataBaseServiceTest extends Test
     {
         db.removeMessageListener(DataBaseServiceMessageType.FindResult, findCb_2);
 
-        Assert.equals("Pukallo", db.getResult().lastName);
+        Assert.equals("Pukallo", db.result.lastName);
 
         db.delete(TABLE_NAME, {lastName:"Pukallo"});
     }
@@ -109,7 +110,7 @@ class DataBaseServiceTest extends Test
     public function testInsertDuplicateError(async:Async):Void
     {
         db.addMessageListener(DataBaseServiceMessageType.InsertError, m -> {
-            Assert.equals(MongoErrorCode.Duplicate, db.getError().code);
+            Assert.equals(DataBaseErrorCode.Duplicate, db.error.code);
             async.done();
         });
 
@@ -117,18 +118,5 @@ class DataBaseServiceTest extends Test
             {firstName: "Onton", lastName: "Ololoev"},
             {firstName: "Dzigurda", lastName: "Ololoev"}
         ]);
-    }
-}
-
-class DummyDb extends NodeMongoDatabaseService
-{
-    public function getResult():Dynamic
-    {
-        return result;
-    }
-
-    public function getError():MongoError
-    {
-        return error;
     }
 }

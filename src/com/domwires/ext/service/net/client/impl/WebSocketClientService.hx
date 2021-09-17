@@ -4,7 +4,7 @@ import haxe.Http;
 import hx.ws.WebSocket;
 import hx.ws.Log;
 
-class CPNetClientService extends AbstractNetClientService implements INetClientService
+class WebSocketClientService extends AbstractNetClientService implements INetClientService
 {
     private var client:WebSocket;
 
