@@ -1,3 +1,4 @@
 -cmd haxe scripts/install.hxml
 -cmd haxe scripts/model_gen.hxml
+-cmd haxe scripts/cmd_gen.hxml
 -cmd haxe scripts/test.hxml
