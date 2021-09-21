@@ -1,7 +1,0 @@
-{
-  "test": {
-    "alias": "test",
-    "desc": "Test command",
-    "className": "com.domwires.ext.debug.MockCommand"
-  }
-}

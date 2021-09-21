@@ -1,5 +1,3 @@
-package;
-
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;

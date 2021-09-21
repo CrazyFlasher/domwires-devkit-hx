@@ -16,6 +16,6 @@
 -D js-es6
 -D no-deprecation-warnings
 -debug
---resource test/res/command_map.json@command_map.json
+--resource test/com/domwires/ext/debug/res/command_map.json@command_map.json
 -D UTEST_PRINT_TESTS
 # -D UTEST_PATTERN=testHandlerTcpConnectServer

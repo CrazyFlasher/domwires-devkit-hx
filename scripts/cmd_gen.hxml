@@ -1,0 +1,1 @@
+-cmd haxelib run hxp ./scripts/hx/CommandMapGen.hx -Din=./test/com/domwires/ext/debug/mock -Dout=test/com/domwires/ext/debug/res
