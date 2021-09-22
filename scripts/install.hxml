@@ -1,5 +1,5 @@
 -cmd haxelib newrepo
--cmd haxelib install DomWires 1.0.0-alpha.16 --quiet --always
+-cmd haxelib install DomWires 1.0.0-alpha.17 --quiet --always
 -cmd haxelib install dox 1.5.0 --quiet
 -cmd haxelib install hxnodejs 12.1.0 --quiet
 -cmd haxelib git hxnodelibs https://github.com/CrazyFlasher/hxnodelibs 0055bbb63e4ff00a64a75ebbfb449c4a30afab83 --always --quiet
